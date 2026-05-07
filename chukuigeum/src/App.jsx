@@ -350,7 +350,7 @@ async function searchMealCostFromDB(name) {
     const { data } = await supabase
       .from('venues')
       .select('name, meal_cost, grade, naver_map_url, tmap_url')
-      .ilike('name', `%${name}%`)
+      .or(`name.ilike.%${name}%,name.ilike.%${name.replace('서울', '').trim()}%`)
       .limit(5);
     return data?.length > 0 ? data : null;
   } catch {
