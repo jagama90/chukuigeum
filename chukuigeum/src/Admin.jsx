@@ -111,6 +111,38 @@ export default function Admin() {
     if (selectedReport?.id === id) setSelectedReport(prev => ({ ...prev, status }));
   };
 
+
+  const transferToVenues = async (report) => {
+  // 이미 이관됐는지 확인
+  const { data: existing } = await supabase
+    .from("venues")
+    .select("id")
+    .eq("source_report_id", report.id)
+    .single();
+
+  if (existing) {
+    alert("이미 예식장 DB에 등록된 제보예요!");
+    return;
+  }
+
+  const { error } = await supabase.from("venues").insert([{
+    name: report.venue_name,
+    address: report.address,
+    meal_cost: report.meal_cost,
+    venue_fee: report.venue_fee,
+    source_report_id: report.id,
+  }]);
+
+  if (error) {
+    alert("이관 실패: " + error.message);
+    return;
+  }
+
+  // 제보 status도 approved로 변경
+  await updateReportStatus(report.id, "approved");
+  alert(`✅ "${report.venue_name}" 예식장 DB에 등록됐어요!`);
+};
+
   // ── 로그인 화면 ─────────────────────────────────────────────────────────────
   if (!authed) {
     return (
@@ -333,6 +365,17 @@ export default function Admin() {
                     cursor: "pointer", fontSize: 12, color: "#aaa", fontFamily: "inherit"
                   }}
                 >검토중으로 되돌리기</button>
+                <button
+  onClick={() => transferToVenues(selectedReport)}
+  style={{
+    width: "100%", marginTop: 8, padding: "12px", borderRadius: 10,
+    border: "none", background: "linear-gradient(135deg, #667eea, #764ba2)",
+    color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700,
+    fontFamily: "inherit"
+  }}
+>
+  🏛️ 예식장 DB에 등록하기
+</button>
               </div>
             )}
           </div>
