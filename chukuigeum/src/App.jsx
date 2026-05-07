@@ -354,7 +354,7 @@ function MultiSelectOptions({ options, onConfirm }) {
 async function searchKakaoPlace(query) {
   try {
     const res = await fetch(
-      `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=5`,
+      `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=15`,
       { headers: { Authorization: `KakaoAK ${KAKAO_REST_KEY}` } }
     );
     const data = await res.json();
@@ -527,31 +527,56 @@ function VenueSearch({ onSelect }) {
       )}
 
       {step === "place" && (
-        <div>
-          <div style={{ fontSize: 12, color: "#888", marginBottom: 8, fontWeight: 600 }}>
-            📍 검색 결과 — 해당하는 곳을 선택해주세요
+  <div>
+    {/* 검색창 다시 보여주기 */}
+    <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+      <input
+        type="text" value={query}
+        onChange={e => setQuery(e.target.value)}
+        onKeyDown={e => e.key === "Enter" && searchPlace()}
+        placeholder="예) 신라호텔, 롯데호텔..."
+        style={{
+          flex: 1, padding: "12px 14px", borderRadius: 12,
+          border: "2px solid #f0f0f0", fontSize: 14,
+          fontFamily: "inherit", outline: "none", background: "#fff"
+        }}
+      />
+      <button onClick={searchPlace} style={{
+        padding: "12px 16px", borderRadius: 12, border: "none",
+        background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
+        color: "#fff", cursor: "pointer", fontSize: 14,
+        fontWeight: 700, fontFamily: "inherit", whiteSpace: "nowrap"
+      }}>검색</button>
+    </div>
+
+    {/* 결과 리스트 — 세로로 */}
+    <div style={{ fontSize: 12, color: "#888", marginBottom: 8, fontWeight: 600 }}>
+      📍 검색 결과 — 해당하는 곳을 선택해주세요
+    </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {places.map((p, i) => (
+        <button key={i} onClick={() => selectPlace(p)} style={{
+          width: "100%", padding: "14px 16px", borderRadius: 14,
+          border: "2px solid #f0f0f0", background: "#fff",
+          cursor: "pointer", textAlign: "left",
+          fontFamily: "inherit"
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#111", marginBottom: 3 }}>
+            {p.place_name}
           </div>
-          {places.map((p, i) => (
-            <button key={i} onClick={() => selectPlace(p)} style={{
-              width: "100%", padding: "14px 16px", borderRadius: 14,
-              border: "2px solid #f0f0f0", background: "#fff",
-              cursor: "pointer", textAlign: "left", marginBottom: 8,
-              fontFamily: "inherit"
-            }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#111", marginBottom: 3 }}>
-                {p.place_name}
-              </div>
-              <div style={{ fontSize: 12, color: "#888", marginBottom: 2 }}>📍 {p.address_name}</div>
-              {p.category_name && <div style={{ fontSize: 11, color: "#bbb" }}>{p.category_name}</div>}
-            </button>
-          ))}
-          <button onClick={() => setStep("manual")} style={{
-            width: "100%", padding: "10px", borderRadius: 10,
-            border: "1px dashed #ddd", background: "#fafafa",
-            color: "#aaa", cursor: "pointer", fontSize: 12, fontFamily: "inherit"
-          }}>찾는 곳이 없어요</button>
-        </div>
-      )}
+          <div style={{ fontSize: 12, color: "#888", marginBottom: 2 }}>📍 {p.address_name}</div>
+          {p.category_name && <div style={{ fontSize: 11, color: "#bbb" }}>{p.category_name}</div>}
+        </button>
+      ))}
+    </div>
+
+    <button onClick={() => setStep("manual")} style={{
+      width: "100%", padding: "10px", borderRadius: 10, marginTop: 8,
+      border: "1px dashed #ddd", background: "#fafafa",
+      color: "#aaa", cursor: "pointer", fontSize: 12, fontFamily: "inherit"
+    }}>찾는 곳이 없어요</button>
+  </div>
+)}
 
       {step === "meal" && selectedPlace && (
         <div>
