@@ -327,15 +327,43 @@ export default function Admin() {
                   </div>
                 ))}
 
-                {selectedReport.file_url && (
-                  <a href={selectedReport.file_url} target="_blank" rel="noreferrer" style={{
-                    display: "block", marginTop: 12, padding: "10px",
-                    background: "#f8f8f8", borderRadius: 8, textAlign: "center",
-                    fontSize: 13, color: "#667eea", textDecoration: "none", fontWeight: 600
-                  }}>
-                    📎 첨부파일 보기
-                  </a>
-                )}
+                <div style={{ marginTop: 12 }}>
+  <div style={{ fontSize: 12, color: "#888", marginBottom: 6, fontWeight: 600 }}>
+    📎 첨부파일
+  </div>
+  {selectedReport.file_url ? (
+    <div>
+      {/* 이미지면 미리보기 */}
+      {/\.(jpg|jpeg|png|gif|webp)$/i.test(selectedReport.file_url) ? (
+        <img
+          src={selectedReport.file_url}
+          alt="첨부 이미지"
+          style={{
+            width: "100%", borderRadius: 10, marginBottom: 8,
+            border: "1px solid #f0f0f0", cursor: "pointer"
+          }}
+          onClick={() => window.open(selectedReport.file_url, "_blank")}
+        />
+      ) : (
+        /* PDF 등 */
+        <a href={selectedReport.file_url} target="_blank" rel="noreferrer" style={{
+          display: "block", padding: "10px", background: "#f8f8f8",
+          borderRadius: 8, textAlign: "center", fontSize: 13,
+          color: "#667eea", textDecoration: "none", fontWeight: 600, marginBottom: 8
+        }}>
+          📄 파일 열기 (새 탭)
+        </a>
+      )}
+    </div>
+  ) : (
+    <div style={{
+      padding: "10px", background: "#f8f8f8", borderRadius: 8,
+      textAlign: "center", fontSize: 12, color: "#bbb"
+    }}>
+      첨부파일 없음
+    </div>
+  )}
+</div>
 
                 <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
                   <button
