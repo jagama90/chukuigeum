@@ -671,7 +671,7 @@ function ReportModal({ onClose }) {
       const { createClient } = await import('@supabase/supabase-js');
       const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
       const ext = form.file.name.split('.').pop();
-      const fileName = `${Date.now()}.${ext}`;
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
       const { data } = await supabase.storage.from('venue-reports').upload(fileName, form.file);
       if (data) {
         const { data: urlData } = supabase.storage.from('venue-reports').getPublicUrl(fileName);
