@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { saveCalculation, saveVenueReport, uploadReportFile, getCalculationByToken } from './lib/db'
+
 
 // ─── 데이터 ───────────────────────────────────────────────────────────────────
 
@@ -442,17 +444,52 @@ function ScoreBar({ score, maxScore }) {
 }
 
 function ResultScreen({ result, answers, onRetry, onReport }) {
+const [shareUrl, setShareUrl] = useState('')
+useEffect(() => {
+  async function save() {
+    const saved = await saveCalculation({
+      score: result.total,
+      amount: result.tier.amount,
+      resultTitle: result.tier.title,
+      answers: answers,
+    })
+    if (saved) {
+      setShareUrl(`${window.location.origin}?share=${saved.share_token}`)
+    }
+  }
+  save()
+}, [])
+useEffect(() => {
+  // 결과 화면 뜰 때 자동 저장
+  async function save() {
+    const saved = await saveCalculation({
+      score: result.total,
+      amount: result.tier.amount,
+      resultTitle: result.tier.title,
+      answers: answers,
+    })
+    if (saved) {
+      setShareUrl(`${window.location.origin}?share=${saved.share_token}`)
+    }
+  }
+  save()
+}, [])
+
   const { total, tier, breakdown } = result;
   const [copied, setCopied] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
 
   const handleCopy = () => {
-    const msg = `💒 축의금 계산 결과: ${formatAmount(tier.amount)}\n"${tier.title}"\n\n나도 계산해보기 → https://chukui.vercel.app`;
-    navigator.clipboard.writeText(msg).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
+  const msg = shareUrl
+    ? `💒 축의금 계산 결과: ${formatAmount(result.tier.amount)}\n"${result.tier.title}"\n\n나도 계산해보기 → ${shareUrl}`
+    : `💒 축의금 계산 결과: ${formatAmount(result.tier.amount)}\n"${result.tier.title}"`
+
+  navigator.clipboard.writeText(msg).then(() => {
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  })
+}
+
 
   const handleKakao = () => {
     alert("카카오 SDK 연동 후 활성화돼요! 배포 시 추가됩니다 🙏");
@@ -630,14 +667,29 @@ function ReportModal({ onClose }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ venue: "", address: "", mealCost: "", venueFee: "", email: "", file: null });
 
-  const handleSubmit = () => {
-    if (!form.venue || !form.mealCost) {
-      alert("예식장 이름과 식대는 필수예요!");
-      return;
-    }
-    setStep(2);
-  };
-
+const handleSubmit = async () => {
+  if (!form.venue || !form.mealCost) {
+    alert('예식장 이름과 식대는 필수예요!')
+    return
+  }
+  let fileUrl = null
+  if (form.file) {
+    fileUrl = await uploadReportFile(form.file)
+  }
+  const saved = await saveVenueReport({
+    venueName: form.venue,
+    address: form.address,
+    mealCost: form.mealCost,
+    venueFee: form.venueFee,
+    reporterEmail: form.email,
+    fileUrl,
+  })
+  if (saved) {
+    setStep(2)
+  } else {
+    alert('저장 중 오류가 났어요. 다시 시도해주세요!')
+  }
+}
   return (
     <div style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000,
@@ -832,6 +884,22 @@ function IntroScreen({ onStart }) {
 // ─── 메인 앱 ─────────────────────────────────────────────────────────────────
 
 export default function App() {
+
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search)
+  const token = params.get('share')
+  if (token) {
+    getCalculationByToken(token).then((data) => {
+      if (data) {
+        const tier = RESULT_TIERS.find(t => t.amount === data.amount) || RESULT_TIERS[1]
+        setResult({ total: data.score, tier, breakdown: [] })
+        setAnswers(data.answers || {})
+        setScreen('result')
+      }
+    })
+  }
+}, [])
+
   const [screen, setScreen] = useState("intro"); // intro | quiz | result
   const [qIndex, setQIndex] = useState(0);
   const [answers, setAnswers] = useState({});
