@@ -156,7 +156,7 @@ const QUESTIONS = [
       { label: "🙄 연락은 필요할 때만 함", value: -3, desc: "계산적인 관계" },
       { label: "📸 SNS에 나 태그 남발함", value: -1, desc: "피곤해..." },
       { label: "🎂 내 생일 꼭 챙겨줌", value: 2, desc: "세심한 친구" },
-      { label: "없음", value: 0, desc: "평범한 관계" },
+      { label: "없음", value: 0, desc: "평범한 관계", id: "none" },
     ],
   },
 ];
@@ -350,11 +350,13 @@ function QuestionScreen({ question, answer, onAnswer, onNext, onPrev, isFirst, i
 
   const handleMulti = (val) => {
     if (val === 0) {
-      setLocalSelected([0]);
-      onAnswer(question.id, [0]);
-      return;
-    }
-    const cur = Array.isArray(localSelected) ? localSelected.filter(v => v !== 0) : [];
+  const already = Array.isArray(localSelected) && localSelected.includes(0);
+  const next = already ? [] : [0];
+  setLocalSelected(next);
+  onAnswer(question.id, next);
+  return;
+}
+const cur = Array.isArray(localSelected) ? localSelected.filter(v => v !== 0) : [];
     const next = cur.includes(val) ? cur.filter((v) => v !== val) : [...cur, val];
     setLocalSelected(next);
     onAnswer(question.id, next);
@@ -445,22 +447,8 @@ function ScoreBar({ score, maxScore }) {
 
 function ResultScreen({ result, answers, onRetry, onReport }) {
 const [shareUrl, setShareUrl] = useState('')
+
 useEffect(() => {
-  async function save() {
-    const saved = await saveCalculation({
-      score: result.total,
-      amount: result.tier.amount,
-      resultTitle: result.tier.title,
-      answers: answers,
-    })
-    if (saved) {
-      setShareUrl(`${window.location.origin}?share=${saved.share_token}`)
-    }
-  }
-  save()
-}, [])
-useEffect(() => {
-  // 결과 화면 뜰 때 자동 저장
   async function save() {
     const saved = await saveCalculation({
       score: result.total,
@@ -492,8 +480,32 @@ useEffect(() => {
 
 
   const handleKakao = () => {
-    alert("카카오 SDK 연동 후 활성화돼요! 배포 시 추가됩니다 🙏");
-  };
+  if (!window.Kakao?.isInitialized()) {
+    alert('카카오 SDK 로딩 중이에요. 잠시 후 다시 시도해주세요!')
+    return
+  }
+  window.Kakao.Share.sendDefault({
+    objectType: 'feed',
+    content: {
+      title: `축의금 계산 결과: ${formatAmount(tier.amount)}`,
+      description: `"${tier.title}"\n축의금, 이걸로 정하면 욕 안 먹습니다 💒`,
+      imageUrl: 'https://chukuigeum.vercel.app/og-image.png',
+      link: {
+        mobileWebUrl: shareUrl || 'https://chukuigeum.vercel.app',
+        webUrl: shareUrl || 'https://chukuigeum.vercel.app',
+      },
+    },
+    buttons: [
+      {
+        title: '나도 계산해보기',
+        link: {
+          mobileWebUrl: 'https://chukuigeum.vercel.app',
+          webUrl: 'https://chukuigeum.vercel.app',
+        },
+      },
+    ],
+  })
+}
 
   return (
     <div style={{ animation: "fadeSlideIn 0.4s ease" }}>
@@ -886,6 +898,12 @@ function IntroScreen({ onStart }) {
 export default function App() {
 
   useEffect(() => {
+  if (window.Kakao && !window.Kakao.isInitialized()) {
+    window.Kakao.init('45e6d80e2cae0c2ec1367771b1d389e0')
+  }
+}, [])
+
+  useEffect(() => {
   const params = new URLSearchParams(window.location.search)
   const token = params.get('share')
   if (token) {
@@ -905,6 +923,21 @@ export default function App() {
   const [answers, setAnswers] = useState({});
   const [result, setResult] = useState(null);
   const [showReport, setShowReport] = useState(false);
+
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search)
+  const token = params.get('share')
+  if (token) {
+    getCalculationByToken(token).then((data) => {
+      if (data) {
+        const tier = RESULT_TIERS.find(t => t.amount === data.amount) || RESULT_TIERS[1]
+        setResult({ total: data.score, tier, breakdown: [] })
+        setAnswers(data.answers || {})
+        setScreen('result')
+      }
+    })
+  }
+}, [])
 
   const handleAnswer = (id, val) => {
     setAnswers((prev) => ({ ...prev, [id]: val }));
