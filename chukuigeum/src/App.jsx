@@ -395,6 +395,8 @@ function VenueSearch({ onSelect }) {
   const [mealInfo, setMealInfo] = useState(null);
   const [mealLoading, setMealLoading] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [suggestions, setSuggestions] = useState([]); // 자동완성 목록
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const searchPlace = async () => {
     if (!query.trim()) return;
@@ -451,7 +453,14 @@ function VenueSearch({ onSelect }) {
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <input
             type="text" value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={async (e) => {
+              const val = e.target.value;
+              setQuery(val);
+              if (val.length < 2) { setSuggestions([]); return; }
+              const results = await searchKakaoPlace(val); // 이미 있는 함수!
+              setSuggestions(results.slice(0, 5));
+              setShowSuggestions(true);
+            }}
             onKeyDown={e => e.key === "Enter" && searchPlace()}
             placeholder="예) 신라호텔, 롯데호텔..."
             style={{
@@ -460,6 +469,27 @@ function VenueSearch({ onSelect }) {
               fontFamily: "inherit", outline: "none", background: "#fff"
             }}
           />
+          {showSuggestions && suggestions.length > 0 && (
+  <div style={{
+    background: "#fff", borderRadius: 12, border: "1.5px solid #f0f0f0",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.08)", overflow: "hidden", marginTop: -4
+  }}>
+    {suggestions.map((p, i) => (
+      <button key={i} onClick={() => {
+        setQuery(p.place_name);
+        setShowSuggestions(false);
+        selectPlace(p); // 선택 즉시 식대 조회로 이동
+      }} style={{
+        width: "100%", padding: "12px 14px", border: "none",
+        borderBottom: i < suggestions.length - 1 ? "1px solid #f5f5f5" : "none",
+        background: "#fff", cursor: "pointer", textAlign: "left", fontFamily: "inherit"
+      }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{p.place_name}</div>
+        <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>{p.address_name}</div>
+      </button>
+    ))}
+  </div>
+)}
           <button onClick={searchPlace} disabled={step === "searching"} style={{
             padding: "12px 16px", borderRadius: 12, border: "none",
             background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
