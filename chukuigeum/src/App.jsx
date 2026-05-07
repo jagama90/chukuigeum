@@ -349,11 +349,10 @@ async function searchMealCostFromDB(name) {
     );
     const { data } = await supabase
       .from('venues')
-      .select('meal_cost, grade, naver_map_url, tmap_url')
+      .select('name, meal_cost, grade, naver_map_url, tmap_url')
       .ilike('name', `%${name}%`)
-      .limit(1)
-      .single();
-    return data || null;
+      .limit(5);
+    return data?.length > 0 ? data : null;
   } catch {
     return null;
   }
@@ -410,8 +409,12 @@ function VenueSearch({ onSelect }) {
     setStep("meal");
     setMealLoading(true);
     const dbData = await searchMealCostFromDB(place.place_name);
-    if (dbData?.meal_cost) {
-      setMealInfo({ ...dbData, source: "db" });
+    if (dbData && Array.isArray(dbData)) {
+      if (dbData.length === 1) {
+        setMealInfo({ ...dbData[0], source: "db" });
+      } else {
+        setMealInfo({ source: "db_multi", list: dbData });
+      }
       setMealLoading(false);
       return;
     }
@@ -544,7 +547,30 @@ function VenueSearch({ onSelect }) {
                 background: "#fff", borderRadius: 14, padding: "14px 16px",
                 marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
               }}>
-                {mealInfo?.source === "db" && (
+                {mealInfo?.source === "db_multi" && (
+                <>
+                  <div style={{ fontSize: 11, color: "#22C55E", fontWeight: 700, marginBottom: 8 }}>
+                    ✅ DB에서 찾은 예식장 목록
+                  </div>
+                  {mealInfo.list.map((v, i) => (
+                    <button key={i} onClick={() => {
+                      setMealInfo({ ...v, source: "db" });
+                    }} style={{
+                      width: "100%", padding: "12px 14px", borderRadius: 10,
+                      border: "1.5px solid #f0f0f0", background: "#fafafa",
+                      cursor: "pointer", textAlign: "left", marginBottom: 8,
+                      fontFamily: "inherit", display: "flex",
+                      justifyContent: "space-between", alignItems: "center"
+                    }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#111" }}>{v.name}</span>
+                      <span style={{ fontSize: 13, color: "#FF6B6B", fontWeight: 700 }}>
+                        {v.meal_cost ? `${v.meal_cost.toLocaleString()}원` : "식대 미등록"}
+                      </span>
+                    </button>
+                  ))}
+                </>
+              )}
+              {mealInfo?.source === "db" && (
                   <>
                     <div style={{ fontSize: 11, color: "#22C55E", fontWeight: 700, marginBottom: 6 }}>✅ 실제 제보 데이터</div>
                     <div style={{ fontSize: 26, fontWeight: 900, color: "#111" }}>{mealInfo.meal_cost?.toLocaleString()}원</div>
