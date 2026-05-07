@@ -100,10 +100,10 @@ const CHAT_FLOW = [
     botMessage: "집에서 식장까지 거리가 얼마나 돼요?",
     type: "select",
     options: [
-      { label: "🚶 10km 미만", value: 0 },
-      { label: "🚌 10km 이상", value: 3 },
-      { label: "🚗 20km 이상", value: 5 },
-      { label: "✈️ 타지역 / 지방", value: 7 },
+     { label: "🚶 10km 미만", value: 0 },
+     { label: "🚌 10km 이상", value: -1 },
+     { label: "🚗 20km 이상", value: -2 },
+     { label: "✈️ 타지역 / 지방", value: -4 },
     ],
   },
   {
@@ -149,22 +149,47 @@ function formatAmount(n) {
 }
 
 function calcResult(answers) {
-  let total = 0;
+  // 관계 점수 (venue, distance, eat_at_venue 제외하고 합산)
+  const EXCLUDE = ["venue", "distance", "eat_at_venue"];
+  let relationScore = 0;
   CHAT_FLOW.forEach((q) => {
+    if (EXCLUDE.includes(q.id)) return;
     const ans = answers[q.id];
     if (!ans) return;
     if (q.type === "multi_select") {
-      const sum = (Array.isArray(ans) ? ans : [ans]).reduce((s, v) => s + (typeof v === "object" ? v.value : v), 0);
-      total += sum;
-    } else if (q.type === "venue_search") {
-      total += ans.score || 0;
+      relationScore += (Array.isArray(ans) ? ans : [ans])
+        .reduce((s, v) => s + (typeof v === "object" ? v.value : v), 0);
     } else {
-      total += ans.value || 0;
+      relationScore += ans.value || 0;
     }
   });
+
+  // 거리 페널티 별도 적용
+  relationScore += answers.distance?.value || 0;
+
+  // 식대 최솟값 계산
+  const venue = answers.venue;
+  const eating = answers.eat_at_venue;
+  const avgMeal = venue?.avgMeal || null;
+  const isEating = (eating?.value ?? -99) >= 2;
+  const mealFloor = isEating && avgMeal ? avgMeal : 0;
+
+  // 관계 점수로 기본 tier 결정
+  const baseTier = RESULT_TIERS.find(t =>
+    relationScore >= t.min && relationScore <= t.max
+  ) || RESULT_TIERS[RESULT_TIERS.length - 1];
+
+  // 식대가 tier 금액보다 높으면 한 단계 상향
+  const finalTier = (mealFloor > 0 && baseTier.amount < mealFloor)
+    ? (RESULT_TIERS.find(t => t.amount >= mealFloor) || RESULT_TIERS[RESULT_TIERS.length - 1])
+    : baseTier;
+
   return {
-    total,
-    tier: RESULT_TIERS.find(t => total >= t.min && total <= t.max) || RESULT_TIERS[RESULT_TIERS.length - 1]
+    total: relationScore,
+    mealFloor,
+    venue,
+    tier: finalTier,
+    upgradedByMeal: finalTier !== baseTier,
   };
 }
 
@@ -807,6 +832,16 @@ function ResultCard({ result, onRetry, onReport }) {
         <span style={{ fontSize: 14, color: "#666" }}>나와의 인연 점수</span>
         <span style={{ fontSize: 24, fontWeight: 900, color: "#111" }}>{total}점</span>
       </div>
+      {result.upgradedByMeal && (
+      <div style={{
+        fontSize: 12, color: "#B45309",
+        background: "#FFFBEB", border: "1px solid #FDE68A",
+        borderRadius: 8, padding: "8px 12px", marginTop: 8, textAlign: "center"
+      }}>
+        💡 {result.venue?.name} 식대({result.mealFloor?.toLocaleString()}원)를
+        고려해 한 단계 올렸어요
+      </div>
+    )}
 
       {/* 핵심 문장 */}
       <div style={{
