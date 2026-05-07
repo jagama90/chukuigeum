@@ -660,6 +660,85 @@ function VenueSearch({ onSelect }) {
   );
 }
 
+function ReportModal({ onClose }) {
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState({ venue: "", address: "", mealCost: "", venueFee: "", email: "", file: null });
+
+  const handleSubmit = async () => {
+    if (!form.venue || !form.mealCost) { alert('예식장 이름과 식대는 필수예요!'); return; }
+    let fileUrl = null;
+    if (form.file) {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
+      const ext = form.file.name.split('.').pop();
+      const fileName = `${Date.now()}.${ext}`;
+      const { data } = await supabase.storage.from('venue-reports').upload(fileName, form.file);
+      if (data) {
+        const { data: urlData } = supabase.storage.from('venue-reports').getPublicUrl(fileName);
+        fileUrl = urlData.publicUrl;
+      }
+    }
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
+    const { error } = await supabase.from('venue_reports').insert([{
+      venue_name: form.venue, address: form.address,
+      meal_cost: form.mealCost ? parseInt(form.mealCost) : null,
+      venue_fee: form.venueFee ? parseInt(form.venueFee) : null,
+      reporter_email: form.email, file_url: fileUrl, status: 'pending'
+    }]);
+    if (!error) setStep(2);
+    else alert('저장 중 오류가 났어요. 다시 시도해주세요!');
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div style={{ background: "#fff", borderRadius: "24px 24px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: 480, fontFamily: "inherit" }}>
+        {step === 1 ? (
+          <>
+            <div style={{ textAlign: "center", marginBottom: 20 }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>📮</div>
+              <h3 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 4px", fontFamily: "inherit" }}>예식장 정보 제보하기</h3>
+              <p style={{ fontSize: 13, color: "#888", margin: 0 }}>모두가 풍요로운 축의가 될 수 있도록!<br />매달 추첨으로 선물을 드려요 🎁</p>
+            </div>
+            {[
+              { key: "venue", label: "예식장 이름 *", placeholder: "예) 롯데호텔 서울" },
+              { key: "address", label: "주소", placeholder: "예) 서울 중구 을지로 30" },
+              { key: "mealCost", label: "1인 식대 (원) *", placeholder: "예) 80000", type: "number" },
+              { key: "venueFee", label: "대관비 (원)", placeholder: "예) 3000000", type: "number" },
+              { key: "email", label: "이메일 (추첨 연락용)", placeholder: "example@email.com" },
+            ].map((f) => (
+              <div key={f.key} style={{ marginBottom: 10 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#555", display: "block", marginBottom: 4 }}>{f.label}</label>
+                <input type={f.type || "text"} placeholder={f.placeholder} value={form[f.key]}
+                  onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1.5px solid #f0f0f0", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box", background: "#fafafa" }} />
+              </div>
+            ))}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#555", display: "block", marginBottom: 4 }}>견적서 / 정산서 첨부 (선택)</label>
+              <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px", borderRadius: 10, border: "1.5px dashed #ddd", background: "#fafafa", cursor: "pointer", fontSize: 13, color: "#888" }}>
+                📎 {form.file ? form.file.name : "파일 첨부하기"}
+                <input type="file" style={{ display: "none" }} accept=".pdf,.jpg,.png" onChange={(e) => setForm({ ...form, file: e.target.files[0] })} />
+              </label>
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={onClose} style={{ flex: 1, padding: "14px", borderRadius: 14, border: "1.5px solid #f0f0f0", background: "#fff", cursor: "pointer", fontSize: 14, fontFamily: "inherit", color: "#666", fontWeight: 600 }}>취소</button>
+              <button onClick={handleSubmit} style={{ flex: 2, padding: "14px", borderRadius: 14, border: "none", background: "linear-gradient(135deg, #667eea, #764ba2)", color: "#fff", cursor: "pointer", fontSize: 14, fontWeight: 700, fontFamily: "inherit" }}>제보 완료!</button>
+            </div>
+          </>
+        ) : (
+          <div style={{ textAlign: "center", padding: "20px 0" }}>
+            <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
+            <h3 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 8px", fontFamily: "inherit" }}>제보 감사해요!</h3>
+            <p style={{ fontSize: 14, color: "#666", lineHeight: 1.6, margin: "0 0 24px" }}>이번 달 추첨에 자동으로 참여됩니다 🎁</p>
+            <button onClick={onClose} style={{ padding: "14px 40px", borderRadius: 14, border: "none", background: "linear-gradient(135deg, #FF6B6B, #FF8E53)", color: "#fff", cursor: "pointer", fontSize: 15, fontWeight: 700, fontFamily: "inherit" }}>확인</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ResultCard({ result, onRetry, onReport }) {
   const { total, tier } = result;
   const [copied, setCopied] = useState(false);
@@ -1079,6 +1158,7 @@ export default function App() {
           </div>
         </div>
       </div>
+    {showReport && <ReportModal onClose={() => setShowReport(false)} />}
     </>
   );
 }
