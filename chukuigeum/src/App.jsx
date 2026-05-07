@@ -100,8 +100,8 @@ const QUESTIONS = [
     options: [
       { label: "당연히 먹지 🍱", value: 5, desc: "밥값은 해야지" },
       { label: "먹을 수도 있고 아닐 수도 있고", value: 2, desc: "애매한 상황" },
-      { label: "안 먹어 (바빠서 / 멀어서)", value: 0, desc: "축의금으로만 성의 표현" },
-      { label: "참석 자체를 못 해", value: 0, desc: "마음만 전달" },
+      { label: "안 먹어 (바빠서 / 멀어서)", value: -1, desc: "축의금으로만 성의 표현" },
+      { label: "참석 자체를 못 해", value: -2, desc: "마음만 전달" },
     ],
   },
   {
