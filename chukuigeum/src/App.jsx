@@ -475,56 +475,65 @@ function VenueSearch({ onSelect }) {
   return (
     <div style={{ padding: "4px 0 16px 46px", animation: "fadeSlideIn 0.3s ease" }}>
       {(step === "input" || step === "searching") && (
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <input
-            type="text" value={query}
-            onChange={async (e) => {
-              const val = e.target.value;
-              setQuery(val);
-              if (val.length < 2) { setSuggestions([]); return; }
-              const results = await searchKakaoPlace(val); // 이미 있는 함수!
-              setSuggestions(results.slice(0, 5));
-              setShowSuggestions(true);
-            }}
-            onKeyDown={e => e.key === "Enter" && searchPlace()}
-            placeholder="예) 신라호텔, 롯데호텔..."
-            style={{
-              flex: 1, padding: "12px 14px", borderRadius: 12,
-              border: "2px solid #f0f0f0", fontSize: 14,
-              fontFamily: "inherit", outline: "none", background: "#fff"
-            }}
-          />
-          {showSuggestions && suggestions.length > 0 && (
-  <div style={{
-    background: "#fff", borderRadius: 12, border: "1.5px solid #f0f0f0",
-    boxShadow: "0 4px 16px rgba(0,0,0,0.08)", overflow: "hidden", marginTop: -4
-  }}>
-    {suggestions.map((p, i) => (
-      <button key={i} onClick={() => {
-        setQuery(p.place_name);
-        setShowSuggestions(false);
-        selectPlace(p); // 선택 즉시 식대 조회로 이동
-      }} style={{
-        width: "100%", padding: "12px 14px", border: "none",
-        borderBottom: i < suggestions.length - 1 ? "1px solid #f5f5f5" : "none",
-        background: "#fff", cursor: "pointer", textAlign: "left", fontFamily: "inherit"
+  <div style={{ position: "relative", marginBottom: 12 }}>
+    {/* input + 검색버튼 */}
+    <div style={{ display: "flex", gap: 8 }}>
+      <input
+        type="text" value={query}
+        onChange={async (e) => {
+          const val = e.target.value;
+          setQuery(val);
+          if (val.length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
+          const results = await searchKakaoPlace(val);
+          setSuggestions(results.slice(0, 10));
+          setShowSuggestions(true);
+        }}
+        onKeyDown={e => e.key === "Enter" && searchPlace()}
+        placeholder="예) 신라호텔, 롯데호텔..."
+        style={{
+          flex: 1, padding: "12px 14px", borderRadius: 12,
+          border: "2px solid #f0f0f0", fontSize: 14,
+          fontFamily: "inherit", outline: "none", background: "#fff"
+        }}
+      />
+      <button onClick={searchPlace} disabled={step === "searching"} style={{
+        padding: "12px 16px", borderRadius: 12, border: "none",
+        background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
+        color: "#fff", cursor: "pointer", fontSize: 14,
+        fontWeight: 700, fontFamily: "inherit", whiteSpace: "nowrap"
       }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{p.place_name}</div>
-        <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>{p.address_name}</div>
+        {step === "searching" ? "🔍..." : "검색"}
       </button>
-    ))}
+    </div>
+
+    {/* 드롭다운 — input 아래로 */}
+    {showSuggestions && suggestions.length > 0 && (
+      <div style={{
+        position: "absolute", top: "100%", left: 0, right: 48,
+        background: "#fff", borderRadius: "0 0 12px 12px",
+        border: "1.5px solid #f0f0f0", borderTop: "none",
+        boxShadow: "0 8px 16px rgba(0,0,0,0.08)",
+        overflow: "hidden", zIndex: 100, marginTop: 2
+      }}>
+        {suggestions.map((p, i) => (
+          <button key={i} onClick={() => {
+            setQuery(p.place_name);
+            setShowSuggestions(false);
+            selectPlace(p);
+          }} style={{
+            width: "100%", padding: "12px 14px", border: "none",
+            borderBottom: i < suggestions.length - 1 ? "1px solid #f5f5f5" : "none",
+            background: "#fff", cursor: "pointer", textAlign: "left",
+            fontFamily: "inherit", display: "block"
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{p.place_name}</div>
+            <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>{p.address_name}</div>
+          </button>
+        ))}
+      </div>
+    )}
   </div>
 )}
-          <button onClick={searchPlace} disabled={step === "searching"} style={{
-            padding: "12px 16px", borderRadius: 12, border: "none",
-            background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
-            color: "#fff", cursor: "pointer", fontSize: 14,
-            fontWeight: 700, fontFamily: "inherit", whiteSpace: "nowrap"
-          }}>
-            {step === "searching" ? "🔍..." : "검색"}
-          </button>
-        </div>
-      )}
 
       {step === "place" && (
   <div>
