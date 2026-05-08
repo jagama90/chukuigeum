@@ -498,6 +498,7 @@ function calcResult(answers) {
     venue,
     tier: { ...finalTier, message: randomMessage },
     upgradedByMeal: finalTier !== baseTier,
+    relationLabel: answers[BASE_ID]?.label || null,
   };
 }
 
@@ -609,6 +610,74 @@ function MonthlyTop3Card() {
             <div style={{ fontSize: 10, color: "#999" }}>
               {item.count}명 선택
             </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RelationAvgStats() {
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { createClient } = await import("@supabase/supabase-js");
+        const supabase = createClient(
+          import.meta.env.VITE_SUPABASE_URL,
+          import.meta.env.VITE_SUPABASE_ANON_KEY
+        );
+        const { data } = await supabase
+          .from("calculations")
+          .select("relation_label, amount")
+          .gte("created_at", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
+          .not("relation_label", "is", null);
+
+        if (!data || data.length < 10) return;
+
+        const grouped = {};
+        data.forEach(d => {
+          if (!d.relation_label) return;
+          if (!grouped[d.relation_label]) grouped[d.relation_label] = [];
+          grouped[d.relation_label].push(d.amount);
+        });
+
+        const result = Object.entries(grouped)
+          .filter(([, arr]) => arr.length >= 3)
+          .map(([label, arr]) => ({
+            label,
+            avg: Math.round(arr.reduce((s, v) => s + v, 0) / arr.length / 10000) * 10000,
+            count: arr.length,
+          }))
+          .sort((a, b) => b.avg - a.avg)
+          .slice(0, 4);
+
+        if (result.length >= 2) setStats(result);
+      } catch { setStats(null); }
+    };
+    load();
+  }, []);
+
+  if (!stats) return null;
+
+  return (
+    <div style={{
+      background: "#fff", borderRadius: 16, padding: "14px 16px",
+      margin: "0 0 16px", boxShadow: "0 4px 16px rgba(0,0,0,0.05)"
+    }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#bbb", letterSpacing: 0.5, marginBottom: 10 }}>
+        📊 관계별 평균 축의금 (최근 90일)
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {stats.map((s, i) => (
+          <div key={i} style={{
+            display: "flex", alignItems: "center", gap: 6,
+            background: "#f8f8f8", borderRadius: 100,
+            padding: "5px 12px", fontSize: 12
+          }}>
+            <span style={{ color: "#888" }}>{s.label.split(" ").slice(1).join(" ") || s.label}</span>
+            <span style={{ fontWeight: 800, color: "#FF6B6B" }}>{formatAmount(s.avg)}</span>
           </div>
         ))}
       </div>
@@ -1232,6 +1301,7 @@ function VenueSearch({ onSelect, onReport }) {
         setShowSuggestions(true);
       }}
       onKeyDown={e => e.key === "Enter" && searchPlace()}
+      onFocus={e => setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300)}
       placeholder="예) 신라호텔, 롯데호텔..."
       style={{
         width: "100%",
@@ -1606,7 +1676,7 @@ function ShareImageCard({ result, cardRef }) {
               background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14
             }}>💒</div>
-            <span style={{ fontSize: 12, fontWeight: 800, color: "#555" }}>착한 축의금</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: "#555" }}>축의금 실시간 계산 중</span>
           </div>
           <span style={{ fontSize: 11, color: "#bbb" }}>weddingfee.vercel.app</span>
         </div>
@@ -1929,8 +1999,16 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [shareToken, setShareToken] = useState(null);
   const [stats, setStats] = useState(null);
+  const [vote, setVote] = useState(null);         // 'up' | 'down' | null
+  const [voteStats, setVoteStats] = useState(null); // { upCount, total }
   const cardRef = useRef(null);
   const shareCardRef = useRef(null);
+
+  useEffect(() => {
+    // 동적 타이틀
+    document.title = `축의금 추천: ${formatAmount(tier.amount)} | 착한 축의금`;
+    return () => { document.title = "축의금 계산기 | 착한 축의금"; };
+  }, [tier.amount]);
 
   useEffect(() => {
     const saveAndGetToken = async () => {
@@ -1947,6 +2025,7 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
           score: result.total,
           amount: tier.amount,
           share_token: token,
+          relation_label: result.relationLabel || null,
         }]);
 
         setShareToken(token);
@@ -1957,6 +2036,26 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
 
     saveAndGetToken();
     fetchSimilarStats(tier.amount).then(setStats);
+
+    // 투표 통계 로드
+    (async () => {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+          import.meta.env.VITE_SUPABASE_URL,
+          import.meta.env.VITE_SUPABASE_ANON_KEY
+        );
+        const { data } = await supabase
+          .from('votes')
+          .select('vote')
+          .eq('amount', tier.amount)
+          .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+        if (data && data.length >= 3) {
+          const upCount = data.filter(d => d.vote === 'up').length;
+          setVoteStats({ upCount, total: data.length });
+        }
+      } catch {}
+    })();
   }, [result.total, tier.amount]);
 
   const handleCopy = () => {
@@ -2027,6 +2126,27 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
       alert("이미지 저장에 실패했어요.");
     }
     setSaving(false);
+  };
+
+  const handleVote = async (v) => {
+    if (vote) return; // 중복 방지
+    setVote(v);
+    // 낙관적 업데이트
+    setVoteStats(prev => {
+      const base = prev || { upCount: 0, total: 0 };
+      return {
+        upCount: base.upCount + (v === 'up' ? 1 : 0),
+        total: base.total + 1,
+      };
+    });
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY
+      );
+      await supabase.from('votes').insert([{ amount: tier.amount, vote: v }]);
+    } catch {}
   };
 
   return (
@@ -2184,6 +2304,63 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
           </div>
         </div>
       )}
+
+      {/* 이 금액 괜찮나요? 투표 */}
+      <div style={{
+        background: "#fff", border: "1px solid #f0f0f0",
+        borderRadius: 16, padding: "16px", marginBottom: 12,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+        animation: "staggerIn 0.4s ease 0.55s both",
+        textAlign: "center"
+      }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#333", marginBottom: 12 }}>
+          이 금액, 실제로 내기 괜찮을 것 같아요?
+        </div>
+        {!vote ? (
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            <button onClick={() => handleVote('up')} style={{
+              flex: 1, padding: "12px", borderRadius: 12, border: "2px solid #f0f0f0",
+              background: "#fff", cursor: "pointer", fontSize: 20, fontFamily: "inherit",
+              transition: "all 0.15s"
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#F0FDF4"; e.currentTarget.style.borderColor = "#86EFAC"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#f0f0f0"; }}
+            >
+              👍<div style={{ fontSize: 11, color: "#666", marginTop: 4, fontWeight: 600 }}>괜찮아요</div>
+            </button>
+            <button onClick={() => handleVote('down')} style={{
+              flex: 1, padding: "12px", borderRadius: 12, border: "2px solid #f0f0f0",
+              background: "#fff", cursor: "pointer", fontSize: 20, fontFamily: "inherit",
+              transition: "all 0.15s"
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#FFF5F5"; e.currentTarget.style.borderColor = "#FCA5A5"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#f0f0f0"; }}
+            >
+              👎<div style={{ fontSize: 11, color: "#666", marginTop: 4, fontWeight: 600 }}>좀 애매해요</div>
+            </button>
+          </div>
+        ) : (
+          <div style={{ animation: "fadeSlideIn 0.3s ease" }}>
+            <div style={{ fontSize: 22, marginBottom: 6 }}>
+              {vote === 'up' ? '👍' : '👎'}
+            </div>
+            {voteStats && (
+              <>
+                <div style={{ fontSize: 22, fontWeight: 900, color: vote === 'up' ? "#22C55E" : "#FF6B6B" }}>
+                  {Math.round((voteStats.upCount / voteStats.total) * 100)}%
+                </div>
+                <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
+                  {formatAmount(tier.amount)}을 낸 {voteStats.total.toLocaleString()}명 중<br />
+                  <strong style={{ color: "#333" }}>{Math.round((voteStats.upCount / voteStats.total) * 100)}%가 괜찮았다고 했어요</strong>
+                </div>
+              </>
+            )}
+            {!voteStats && (
+              <div style={{ fontSize: 12, color: "#888" }}>투표해줘서 고마워요! 🙏</div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* 핵심 문장 */}
       <div style={{
@@ -2347,6 +2524,9 @@ export default function App() {
   const [multiResults, setMultiResults] = useState([]);
   const [showMulti, setShowMulti] = useState(false);
 
+  const [undoToast, setUndoToast] = useState(false);
+  const undoRef = useRef(null);
+
   const scrollToBottom = () => {
   setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
@@ -2505,7 +2685,7 @@ export default function App() {
         );
         setIsDone(true);
         setMessages(prev => [...prev, { type: "result", id: Date.now() }]);
-        scrollToBottom();
+        scrollToResult();
       }, 1000);
     } else {
       // 다음 질문
@@ -2520,15 +2700,38 @@ export default function App() {
     }
   };
 
+  const retrySnapshot = useRef(null);
+
   const retry = () => {
+    // 스냅샷 저장
+    retrySnapshot.current = { messages, answers, isDone: true, result };
     setMessages([]);
     setAnswers({});
     setIsDone(false);
     setResult(null);
     setStarted(false);
     setTimeout(() => setStarted(true), 50);
+
+    // undo 토스트 3초
+    setUndoToast(true);
+    clearTimeout(undoRef.current);
+    undoRef.current = setTimeout(() => {
+      setUndoToast(false);
+      retrySnapshot.current = null;
+    }, 3000);
   };
 
+  const undoRetry = () => {
+    if (!retrySnapshot.current) return;
+    const { messages: m, answers: a, result: r } = retrySnapshot.current;
+    setMessages(m);
+    setAnswers(a);
+    setIsDone(true);
+    setResult(r);
+    setStarted(true);
+    setUndoToast(false);
+    retrySnapshot.current = null;
+  };
   return (
     <>
       <style>{`
@@ -2763,6 +2966,7 @@ export default function App() {
                 </div>
                 <ControversyBubbles />
                 <MonthlyTop3Card />
+                <RelationAvgStats />
                 
                 <button onClick={() => setStarted(true)} style={{
                   width: "100%", padding: "17px", borderRadius: 16, border: "none",
@@ -2924,6 +3128,24 @@ export default function App() {
           </div>
         </div>
       </div>
+    {/* Undo 토스트 */}
+    {undoToast && (
+      <div style={{
+        position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+        background: "#222", color: "#fff", borderRadius: 100,
+        padding: "12px 20px", display: "flex", alignItems: "center", gap: 12,
+        boxShadow: "0 8px 24px rgba(0,0,0,0.2)", zIndex: 2000,
+        fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+        animation: "slideUp 0.3s ease"
+      }}>
+        <span>초기화됐어요</span>
+        <button onClick={undoRetry} style={{
+          background: "#FF6B6B", color: "#fff", border: "none",
+          borderRadius: 100, padding: "5px 12px", cursor: "pointer",
+          fontSize: 12, fontWeight: 700, fontFamily: "inherit"
+        }}>↩ 되돌리기</button>
+      </div>
+    )}
     {showReport && <ReportModal onClose={() => setShowReport(false)} />}
     {showReverse && <ReverseCalculator onClose={() => setShowReverse(false)} />}
     {showHistory && <HistoryPanel onClose={() => setShowHistory(false)} />}
