@@ -729,14 +729,9 @@ function VenueSearch({ onSelect, onReport }) {
   const handleSkip = () => {
     setConfirmed(true);
     onSelect({
-      name: null,
-      address: null,
-      score: null,
-      label: null,
+      name: "모름",
+      label: "아직 몰라요 🤷",
       avgMeal: null,
-      kakaoUrl: null,
-      naverMapUrl: null,
-      tmapUrl: null,
       kakaoPlace: null,
       autoDistance: null,
       skipped: true,
@@ -1599,7 +1594,7 @@ function ResultCard({ result, onRetry, onReport }) {
         marginBottom: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
         animation: "staggerIn 0.4s ease 0.3s both"
       }}>
-        <ScoreDonut score={total} color={tier.color} />
+        <ScoreBar score={total} color={tier.color} />
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
           {result.breakdown?.length > 0 && (
             <button
@@ -2009,7 +2004,7 @@ export default function App() {
           background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
           display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18
         }}>💒</div>
-        <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>착한 축의금을 찾아서...</div>
           <div style={{ fontSize: 11, color: "#22C55E", fontWeight: 600 }}>● 온라인</div>
         </div>
@@ -2069,18 +2064,17 @@ export default function App() {
             <div style={{ padding: "24px 16px" }}>
               <div style={{ textAlign: "center", marginBottom: 24, animation: "popIn 0.6s ease forwards" }}>
                 <div style={{ fontSize: 64, marginBottom: 20 }}>💒</div>
-                <h1 style={{ fontSize: 28, fontWeight: 900, color: "#111", margin: "0 0 6px", fontFamily: "inherit" }}>얼마 내야 해?</h1>
+                <h1 style={{ fontSize: 28, fontWeight: 900, color: "#111", margin: "0 0 6px", fontFamily: "inherit" }}>착한축의금</h1>
                 <p style={{ fontSize: 15, color: "#888", margin: 0 }}>AI 축의금 계산기</p>
               </div>
               <div style={{ animation: "slideUp 0.5s ease 0.2s both" }}>
-                <div style={{ background: "linear-gradient(135deg, #FF6B6B, #FF8E53)", borderRadius: 14, padding: "14px 16px", marginBottom: 12 }}>
-                  <p style={{ fontSize: 16, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.4 }}>💬 축의금, 이걸로 정하면<br />욕 안 먹습니다.</p>
-                </div>
-                <div style={{ background: "#f8f8f8", borderLeft: "3px solid #FF6B6B", borderRadius: "0 12px 12px 0", padding: "12px 14px", marginBottom: 20 }}>
-                  <p style={{ fontSize: 13, color: "#444", margin: 0, lineHeight: 1.7 }}>
-                    축의금은 <strong style={{ color: "#111" }}>"관계의 깊이 + 평소 교류 빈도"</strong>로<br />
-                    기준을 잡는 게 가장 안전하다.<br />
-                    <span style={{ color: "#FF6B6B", fontWeight: 700 }}>감정이 아니라 기준이 필요하다.</span>
+                <div style={{
+                  background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
+                  borderRadius: 14, padding: "14px 16px", marginBottom: 20
+                }}>
+                  <p style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", margin: "8px 0 0", lineHeight: 1.6 }}>
+                    관계의 깊이 + 평소 교류 빈도로<br />
+                    감정이 아니라 기준으로 계산해드려요.
                   </p>
                 </div>
               </div>
