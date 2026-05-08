@@ -2585,13 +2585,16 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
 
       {/* ── 식대 업그레이드 알림 ── */}
       {result.upgradedByMeal && (
-        <div style={{
-          fontSize: 12, color: "#B45309",
-          background: "#FFFBEB", border: "1px solid #FDE68A",
-          borderRadius: 10, padding: "8px 14px", marginBottom: 8, textAlign: "center"
-        }}>
-          💡 {result.venue?.name} 식대 기준으로 한 단계 올렸어요
-        </div>
+      <div style={{
+        fontSize: 12, color: "#B45309",
+        background: "#FFFBEB", border: "1px solid #FDE68A",
+        borderRadius: 8, padding: "8px 12px", marginTop: 8, textAlign: "center"
+      }}>
+        {result.venue?.name && result.venue.name !== "모름"
+          ? `💡 ${result.venue.name} 식대(${result.mealFloor?.toLocaleString()}원) 기준으로 한 단계 올렸어요`
+          : `💡 지역 평균 식대(${result.mealFloor?.toLocaleString()}원) 기준으로 한 단계 올렸어요`
+        }
+      </div>
       )}
 
       {/* ── 탭 네비게이션 ── */}
@@ -2825,42 +2828,7 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
             </div>
           </div>
 
-          {/* 제보하기 */}
-          <div style={{
-            background: "linear-gradient(135deg, #667eea10, #764ba210)",
-            border: "1px solid #667eea20", borderRadius: 16,
-            padding: "16px", textAlign: "center"
-          }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#333", marginBottom: 4 }}>
-              📮 예식장 식대 알고 있나요?
-            </div>
-            <p style={{ fontSize: 12, color: "#777", margin: "0 0 10px" }}>
-              매달 추첨으로 <strong style={{ color: "#667eea" }}>선물 🎁</strong> 드려요
-            </p>
-            <button onClick={onReport} style={{
-              padding: "9px 20px", borderRadius: 100, border: "none",
-              background: "linear-gradient(135deg, #667eea, #764ba2)",
-              color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit"
-            }}>제보하기 →</button>
-          </div>
-
-          {/* 광고 */}
-          <div style={{
-            background: "#fff", border: "1px solid #f0f0f0", borderRadius: 14,
-            padding: "12px 16px", display: "flex", alignItems: "center", gap: 10
-          }}>
-            <span style={{ fontSize: 22 }}>💍</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, color: "#ccc" }}>AD · 제휴문의 welcome</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#333" }}>웨딩플래너 무료 상담</div>
-              <div style={{ fontSize: 11, color: "#aaa" }}>견적 비교하고 최대 30% 절약</div>
-            </div>
-            <button style={{
-              padding: "7px 12px", borderRadius: 8, border: "1px solid #e8ecff",
-              background: "#fff", color: "#667eea", cursor: "pointer",
-              fontSize: 12, fontWeight: 700, fontFamily: "inherit"
-            }}>상담받기</button>
-          </div>
+          
         </div>
       )}
 
@@ -2956,8 +2924,46 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
         </div>
       )}
 
-      {/* ── 하단 고정 버튼 영역 ── */}
+      {/* ── 하단 고정 영역 ── */}
       <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+
+        {/* 제보하기 */}
+        <div style={{
+          background: "linear-gradient(135deg, #667eea10, #764ba210)",
+          border: "1px solid #667eea20", borderRadius: 16,
+          padding: "14px 16px", textAlign: "center"
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#333", marginBottom: 4 }}>
+            📮 예식장 식대 알고 있나요?
+          </div>
+          <p style={{ fontSize: 12, color: "#777", margin: "0 0 10px" }}>
+            매달 추첨으로 <strong style={{ color: "#667eea" }}>선물 🎁</strong> 드려요
+          </p>
+          <button onClick={onReport} style={{
+            padding: "8px 20px", borderRadius: 100, border: "none",
+            background: "linear-gradient(135deg, #667eea, #764ba2)",
+            color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit"
+          }}>제보하기 →</button>
+        </div>
+
+        {/* 광고 */}
+        <div style={{
+          background: "#fff", border: "1px solid #f0f0f0", borderRadius: 14,
+          padding: "12px 16px", display: "flex", alignItems: "center", gap: 10
+        }}>
+          <span style={{ fontSize: 22 }}>💍</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 10, color: "#ccc" }}>AD · 제휴문의 welcome</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#333" }}>웨딩플래너 무료 상담</div>
+            <div style={{ fontSize: 11, color: "#aaa" }}>견적 비교하고 최대 30% 절약</div>
+          </div>
+          <button style={{
+            padding: "7px 12px", borderRadius: 8, border: "1px solid #e8ecff",
+            background: "#fff", color: "#667eea", cursor: "pointer",
+            fontSize: 12, fontWeight: 700, fontFamily: "inherit"
+          }}>상담받기</button>
+        </div>
+
         <button onClick={onRetry} style={{
           width: "100%", padding: "15px", borderRadius: 16, border: "none",
           background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
