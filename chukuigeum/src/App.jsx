@@ -1229,17 +1229,19 @@ async function searchMealCostFromDB(name) {
   try {
     const supabase = await getSupabase();
     // 1차: venues 직접 검색
+    // 검색어에서 핵심 키워드 추출 (앞 2~4글자로 재검색)
+    const keyword = name.replace(/^(서울|부산|대구|인천|광주|대전|제주)/, "").trim().slice(0, 6);
+
     const { data: directData } = await supabase
       .from('venues')
       .select('name, meal_cost, grade, naver_map_url, tmap_url')
-      .ilike('name', `%${name}%`)
+      .or(`name.ilike.%${name}%,name.ilike.%${keyword}%`)
       .limit(5);
-
     // 2차: aliases 테이블에서 검색 → venue_id로 venues 조인
     const { data: aliasData } = await supabase
       .from('venue_aliases')
       .select('venues(name, meal_cost, grade, naver_map_url, tmap_url)')
-      .ilike('alias', `%${name}%`)
+      .or(`alias.ilike.%${name}%,alias.ilike.%${keyword}%`)
       .limit(5);
 
     const aliasVenues = (aliasData || []).map(a => a.venues).filter(Boolean);
