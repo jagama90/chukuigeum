@@ -1274,6 +1274,7 @@ function ResultCard({ result, onRetry, onReport }) {
 
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [shareToken, setShareToken] = useState(null);
   const [stats, setStats] = useState(null);
   const cardRef = useRef(null);
@@ -1398,14 +1399,33 @@ function ResultCard({ result, onRetry, onReport }) {
         background: "#fff", borderRadius: 14, padding: "14px 16px",
         marginBottom: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: result.breakdown?.length ? 12 : 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 14, color: "#666" }}>나와의 인연 점수</span>
-          <span style={{ fontSize: 24, fontWeight: 900, color: "#111" }}>{total}점</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 24, fontWeight: 900, color: "#111" }}>{total}점</span>
+            {result.breakdown?.length > 0 && (
+              <button
+                onClick={() => setBreakdownOpen(o => !o)}
+                style={{
+                  padding: "4px 10px", borderRadius: 100,
+                  border: "1px solid #f0f0f0", background: "#fafafa",
+                  color: "#888", cursor: "pointer", fontSize: 11,
+                  fontFamily: "inherit", fontWeight: 600
+                }}
+              >
+                {breakdownOpen ? "접기 ▲" : "왜 이 금액? ▼"}
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* 세부 내역 */}
-        {result.breakdown?.length > 0 && (
-          <div style={{ borderTop: "1px solid #f5f5f5", paddingTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+        {/* 아코디언 세부 내역 */}
+        {breakdownOpen && result.breakdown?.length > 0 && (
+          <div style={{
+            borderTop: "1px solid #f5f5f5", paddingTop: 10, marginTop: 10,
+            display: "flex", flexDirection: "column", gap: 6,
+            animation: "fadeSlideIn 0.2s ease"
+          }}>
             {result.breakdown.map((item, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 12, color: "#888", flex: 1, marginRight: 8 }}>{item.label}</span>
@@ -1417,6 +1437,13 @@ function ResultCard({ result, onRetry, onReport }) {
                 </span>
               </div>
             ))}
+            <div style={{
+              borderTop: "1px solid #f5f5f5", paddingTop: 8, marginTop: 2,
+              display: "flex", justifyContent: "space-between"
+            }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#444" }}>합계</span>
+              <span style={{ fontSize: 12, fontWeight: 900, color: "#111" }}>{total}점</span>
+            </div>
           </div>
         )}
       </div>

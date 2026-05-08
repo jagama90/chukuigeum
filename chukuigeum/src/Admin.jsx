@@ -109,6 +109,23 @@ export default function Admin() {
     await supabase.from("venue_reports").update({ status }).eq("id", id);
     setReports(prev => prev.map(r => r.id === id ? { ...r, status } : r));
     if (selectedReport?.id === id) setSelectedReport(prev => ({ ...prev, status }));
+
+    // 승인 시 자동으로 예식장 DB 등록
+    if (status === "approved") {
+      const report = reports.find(r => r.id === id);
+      if (!report) return;
+      const { data: existing } = await supabase
+        .from("venues").select("id").eq("source_report_id", id).single();
+      if (existing) return; // 이미 등록됨
+      const { error } = await supabase.from("venues").insert([{
+        name: report.venue_name,
+        address: report.address,
+        meal_cost: report.meal_cost,
+        venue_fee: report.venue_fee,
+        source_report_id: report.id,
+      }]);
+      if (!error) alert(`✅ "${report.venue_name}" 예식장 DB에 자동 등록됐어요!`);
+    }
   };
 
   const transferToVenues = async (report) => {
@@ -352,17 +369,7 @@ export default function Admin() {
                     cursor: "pointer", fontSize: 12, color: "#aaa", fontFamily: "inherit"
                   }}
                 >검토중으로 되돌리기</button>
-                <button
-                  onClick={() => transferToVenues(selectedReport)}
-                  style={{
-                    width: "100%", marginTop: 8, padding: "12px", borderRadius: 10,
-                    border: "none", background: "linear-gradient(135deg, #667eea, #764ba2)",
-                    color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700,
-                    fontFamily: "inherit"
-                  }}
-                >
-                  🏛️ 예식장 DB에 등록하기
-                </button>
+                
               </div>
             )}
           </div>
