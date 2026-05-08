@@ -24,7 +24,7 @@ const CHAT_FLOW = [
     type: "select",
     options: [
       { label: "👨‍👩‍👧 가족 / 친척", value: 20 },
-      { label: "🤗 절친 / 베프", value: 12 },
+      { label: "🤗 둘도없는 절친 / 베프", value: 12 },
       { label: "😊 친한 친구", value: 8 },
       { label: "💼 직장 동료", value: 5 },
       { label: "👋 지인 / 아는 사람", value: 2 },
@@ -49,9 +49,9 @@ const CHAT_FLOW = [
     type: "select",
     options: [
       { label: "💝 왔고, 축의금도 두둑이", value: 8 },
-      { label: "✅ 왔어요 (보통으로)", value: 5 },
+      { label: "✅ 오긴 왔어요", value: 5 },
       { label: "📞 못 왔는데 연락은 했어요", value: 2 },
-      { label: "😶 연락 없었어요", value: 0 },
+      { label: "😶 연락조차 없었어요", value: 0 },
       { label: "💍 나 아직 미혼이에요", value: 3 },
     ],
   },
@@ -60,10 +60,10 @@ const CHAT_FLOW = [
     botMessage: "카톡 보내면 답장 속도가 어때요?\n(평균적으로)",
     type: "select",
     options: [
-      { label: "⚡ 즉시 (1분 이내)", value: 3 },
+      { label: "⚡ 즉시 (5분 이내)", value: 3 },
       { label: "🙂 빠른 편 (1시간 이내)", value: 2 },
       { label: "🐌 느린 편 (하루 이내)", value: 1 },
-      { label: "👻 거의 안 읽어요", value: 0 },
+      { label: "👻 거의 안 읽다시피 해요", value: 0 },
       { label: "😤 읽씹 전문", value: -2 },
     ],
   },
@@ -81,7 +81,7 @@ const CHAT_FLOW = [
   },
   {
     id: "venue",
-    botMessage: "예식장이 어디예요?\n이름으로 검색해보세요 🔍",
+    botMessage: "예식장이 어디예요?\n직접 검색해보세요 🔍",
     type: "venue_search",
   },
   {
@@ -239,7 +239,7 @@ function UserMessage({ text }) {
         background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
         color: "#fff", borderRadius: "18px 4px 18px 18px",
         padding: "12px 16px", maxWidth: "75%",
-        fontSize: 14, lineHeight: 1.6,
+        fontSize: 14, lineHeight: 1.6, textAlign: "left",
         boxShadow: "0 2px 8px rgba(255,107,107,0.25)"
       }}>
         {text}
@@ -247,22 +247,24 @@ function UserMessage({ text }) {
     </div>
   );
 }
-
-function DistanceSelect({ options, onSelect, selected, venuePlace }) {
+function DistanceSelect({ options, onSelect, selected, onReselect, venuePlace }) {
   const [loading, setLoading] = useState(false);
-  const [autoResult, setAutoResult] = useState(null);
+  const [showPermissionHint, setShowPermissionHint] = useState(false);
 
   const handleAuto = async () => {
     setLoading(true);
+    setShowPermissionHint(true); // 권한 요청 전 안내 표시
     const userLoc = await getUserLocation();
+    setShowPermissionHint(false);
+
     if (!userLoc) {
-      alert("위치 권한이 필요해요! 브라우저 설정에서 허용해주세요.");
-      setLoading(false); return;
+      setLoading(false);
+      return;
     }
     const km = await getDistanceKm(userLoc.x, userLoc.y, venuePlace?.x, venuePlace?.y);
     if (!km) {
-      alert("거리 계산에 실패했어요. 직접 선택해주세요.");
-      setLoading(false); return;
+      setLoading(false);
+      return;
     }
     const matched =
       km < 10 ? options[0] :
@@ -270,20 +272,29 @@ function DistanceSelect({ options, onSelect, selected, venuePlace }) {
       km < 80 ? options[2] : options[3];
 
     const result = { ...matched, label: `${matched.label.split(' ')[0]} ${km}km (자동계산)` };
-    setAutoResult({ km, result });
     setLoading(false);
     onSelect(result);
   };
 
+  // 선택 완료 상태
   if (selected) {
     return (
-      <div style={{ padding: "4px 0 16px 46px" }}>
-        <div style={{
-          padding: "11px 16px", borderRadius: 12,
-          border: "2px solid #FF6B6B", background: "#FFF5F5",
-          fontSize: 14, fontWeight: 700, color: "#FF6B6B"
-        }}>
-          {selected.label}
+      <div style={{ padding: "4px 0 16px 46px", animation: "fadeSlideIn 0.3s ease" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{
+            flex: 1, padding: "11px 16px", borderRadius: 12,
+            border: "2px solid #FF6B6B", background: "#FFF5F5",
+            fontSize: 14, fontWeight: 700, color: "#FF6B6B"
+          }}>
+            {selected.label}
+          </div>
+          <button onClick={onReselect} style={{
+            padding: "9px 12px", borderRadius: 10, border: "1px solid #f0f0f0",
+            background: "#fff", color: "#999", cursor: "pointer",
+            fontSize: 12, fontFamily: "inherit", whiteSpace: "nowrap"
+          }}>
+            ✏️ 다시
+          </button>
         </div>
       </div>
     );
@@ -301,19 +312,33 @@ function DistanceSelect({ options, onSelect, selected, venuePlace }) {
         </button>
       ))}
 
+      {/* 위치 권한 안내 */}
+      {showPermissionHint && (
+        <div style={{
+          padding: "10px 14px", borderRadius: 10,
+          background: "#FFF8E1", border: "1px solid #FDE68A",
+          fontSize: 12, color: "#B45309", textAlign: "center"
+        }}>
+          📍 브라우저에서 위치 권한을 허용해주세요
+        </div>
+      )}
+
       {/* 자동계산 버튼 */}
       <button onClick={handleAuto} disabled={loading} style={{
         padding: "14px 16px", borderRadius: 12, textAlign: "center", minHeight: 44,
-        border: "2px dashed #FF6B6B", background: loading ? "#fff5f5" : "#fff",
+        border: "2px dashed #FF6B6B", background: loading ? "#FFF5F5" : "#fff",
         color: "#FF6B6B", cursor: loading ? "default" : "pointer",
         fontSize: 14, fontWeight: 700, fontFamily: "inherit",
         display: "flex", alignItems: "center", justifyContent: "center", gap: 6
       }}>
         {loading
-          ? <><span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⏳</span> 계산 중...</>
+          ? <><span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⏳</span> 위치 확인 중...</>
           : "📍 현재 위치로 자동 계산하기"
         }
       </button>
+      <p style={{ fontSize: 11, color: "#bbb", textAlign: "center", margin: "0 0 4px" }}>
+        위치 권한 허용이 필요해요 · 주소는 저장되지 않아요 🔒
+      </p>
     </div>
   );
 }
@@ -396,7 +421,7 @@ function MultiSelectOptions({ options, onConfirm }) {
           const isSelected = selected.find(s => s.label === opt.label);
           return (
             <button key={opt.label} onClick={() => toggle(opt)} style={{
-              padding: "11px 16px", borderRadius: 12, textAlign: "left",
+              padding: "14px 16px", borderRadius: 12, textAlign: "left", minHeight: 44,
               border: isSelected ? "2px solid #FF6B6B" : "2px solid #f0f0f0",
               background: isSelected ? "#FFF5F5" : "#fff",
               color: isSelected ? "#FF6B6B" : "#333",
@@ -788,7 +813,7 @@ function VenueSearch({ onSelect }) {
               )}
               {mealInfo?.source === "db" && (
                   <>
-                    <div style={{ fontSize: 11, color: "#22C55E", fontWeight: 700, marginBottom: 6 }}>✅ 실제 제보 데이터</div>
+                    <div style={{ fontSize: 11, color: "#22C55E", fontWeight: 700, marginBottom: 6 }}>✅ 실제 제보 데이터를 기반으로한 평균 식대에요</div>
                     <div style={{ fontSize: 26, fontWeight: 900, color: "#111" }}>{mealInfo.meal_cost?.toLocaleString()}원</div>
                     <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>1인 식대</div>
                   </>
@@ -999,8 +1024,7 @@ function ResultCard({ result, onRetry, onReport }) {
         background: "#FFFBEB", border: "1px solid #FDE68A",
         borderRadius: 8, padding: "8px 12px", marginTop: 8, textAlign: "center"
       }}>
-        💡 {result.venue?.name} 식대({result.mealFloor?.toLocaleString()}원)를
-        고려해 한 단계 올렸어요
+        💡 {result.venue?.name} 평균 식대({result.mealFloor?.toLocaleString()}원)를 고려해 한 단계 올렸어요
       </div>
     )}
 
@@ -1236,7 +1260,7 @@ export default function App() {
           display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18
         }}>💒</div>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>얼마 내야 해?</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>착한 축의금을 찾아서...</div>
           <div style={{ fontSize: 11, color: "#22C55E", fontWeight: 600 }}>● 온라인</div>
         </div>
       </div>
@@ -1385,6 +1409,21 @@ export default function App() {
                       selected={msg.selected}
                       venuePlace={answers.venue?.kakaoPlace}
                       onSelect={(opt) => !msg.selected && handleAnswer(msg.step, opt)}
+                      onReselect={() => {
+                        setMessages(prev => {
+                          const idx = prev.findIndex(m => m.id === msg.id);
+                          return prev.slice(0, idx + 1).map(m =>
+                            m.id === msg.id ? { ...m, selected: null } : m
+                          );
+                        });
+                        setAnswers(prev => {
+                          const newA = { ...prev };
+                          CHAT_FLOW.slice(msg.step).forEach(q => delete newA[q.id]);
+                          return newA;
+                        });
+                        setIsDone(false);
+                        setResult(null);
+                      }}
                     />
                   );
                 }
