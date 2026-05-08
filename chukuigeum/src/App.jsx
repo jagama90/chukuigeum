@@ -689,11 +689,26 @@ function ControversyBubbles() {
 // ─── 진행 요약 칩 ─────────────────────────────────────────────────────────────
 function AnswerSummaryChips({ answers }) {
   const chips = [];
-  if (answers.relation) chips.push({ emoji: "👤", text: answers.relation.label.split(" ").slice(1).join(" ") });
-  if (answers.meal_count) chips.push({ emoji: "🍽️", text: answers.meal_count.label.split(" ").slice(1).join(" ") });
-  if (answers.venue && !answers.venue.skipped) chips.push({ emoji: "💒", text: answers.venue.name });
-  if (answers.eat_at_venue) chips.push({ emoji: "🥢", text: answers.eat_at_venue.label.split(" ").slice(1).join(" ") });
+  const add = (id, emoji) => {
+    const ans = answers[id];
+    if (!ans) return;
+    const text = Array.isArray(ans)
+      ? ans.map(a => a.label).join(", ")
+      : ans.label || ans.name || "";
+    if (text) chips.push({ emoji, text });
+  };
 
+  add("relation",      "👤");
+  add("meal_count",    "🍽️");
+  add("my_wedding",    "💍");
+  add("kakao_speed",   "💬");
+  add("last_meet",     "📅");
+  if (answers.venue && !answers.venue.skipped) chips.push({ emoji: "💒", text: answers.venue.name });
+  add("eat_at_venue",  "🥢");
+  add("distance",      "📍");
+  add("after_honeymoon","🔮");
+  add("gender",        "👫");
+  add("extra",         "✨");
   if (chips.length === 0) return null;
 
   return (
