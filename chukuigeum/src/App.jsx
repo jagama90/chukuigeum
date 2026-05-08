@@ -2121,7 +2121,7 @@ export default function App() {
           display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18
         }}>💒</div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>착한 축의금을 찾아서...</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>축의금 실시간 계산 중</div>
           <div style={{ fontSize: 11, color: "#22C55E", fontWeight: 600 }}>● 온라인</div>
         </div>
       </div>
@@ -2257,22 +2257,47 @@ export default function App() {
                   가장 무난한 기준으로 계산합니다
                 </div>
               </div>
-              {[
-                { emoji: "🎯", text: "친밀도 기반 점수 계산" },
-                { emoji: "🏨", text: "예식장 등급 반영" },
-                { emoji: "📍", text: "거리·식사 여부까지 고려" },
-                { emoji: "🔗", text: "카카오 공유 가능" },
-              ].map((item, i) => (
-                <div key={i} style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "12px 16px", background: "#fff", borderRadius: 12,
-                  marginBottom: 8, border: "1px solid #f0f0f0",
-                  animation: `staggerIn 0.4s ease ${0.3 + i * 0.08}s both`,
-                }}>
-                  <span style={{ fontSize: 20 }}>{item.emoji}</span>
-                  <span style={{ fontSize: 14, color: "#444", fontWeight: 500 }}>{item.text}</span>
-                </div>
-              ))}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 10,
+                margin: "18px 0 24px"
+              }}>
+                {[
+                  { icon: "🎯", label: "친밀도" },
+                  { icon: "🏛", label: "예식장" },
+                  { icon: "📍", label: "거리" },
+                  { icon: "💬", label: "공유" },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    style={{
+                      background: "rgba(255,255,255,0.7)",
+                      border: "1px solid rgba(255,255,255,0.9)",
+                      borderRadius: 16,
+                      padding: "14px 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      backdropFilter: "blur(8px)"
+                    }}
+                  >
+                    <div style={{
+                      fontSize: 20
+                    }}>
+                      {item.icon}
+                    </div>
+
+                    <div style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: "#333"
+                    }}>
+                      {item.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
               
               <div style={{ animation: "slideUp 0.5s ease 0.7s both" }}>
                 <ControversyBubbles />
