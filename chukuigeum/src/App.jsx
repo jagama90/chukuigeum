@@ -332,13 +332,13 @@ const CHAT_FLOW = [
   },
   {
     id: "distance",
-    botMessage: "집에서 식장까지 거리가 얼마나 돼요?",
+    botMessage: "식장까지 이동이 얼마나 걸려요?",
     type: "distance_select",
     options: [
-      { label: "🚶 10km 미만", value: 0 },
-      { label: "🚌 10km 이상", value: -1 },
-      { label: "🚗 20km 이상", value: -2 },
-      { label: "✈️ 타지역 / 지방", value: -4 },
+      { label: "🚶 걸어서 or 30분 이내", value: 0 },
+      { label: "🚇 대중교통 1시간 이내", value: -1 },
+      { label: "🚗 차로 1시간 넘게", value: -2 },
+      { label: "🛣️ 당일치기도 빠듯해요", value: -4 },
     ],
   },
   // ✅ 신규: 공통 친구
@@ -372,6 +372,15 @@ const CHAT_FLOW = [
 ];
 
 // ─── 예식장 최근 검색 유틸 ───────────────────────────────────────────────────
+// ─── Supabase 싱글톤 ──────────────────────────────────────────────────────────
+let _supabase = null;
+async function getSupabase() {
+  if (_supabase) return _supabase;
+  const supabase = await getSupabase();
+  return _supabase;
+}
+
+
 function loadRecentVenues() {
   try { return JSON.parse(localStorage.getItem("wf_recent_venues") || "[]"); } catch { return []; }
 }
@@ -567,14 +576,17 @@ function calcResult(answers) {
     finalScore >= t.min && finalScore <= t.max
   ) || RESULT_TIERS[RESULT_TIERS.length - 1];
 
-  const finalTier = (mealFloor > 0 && baseTier.amount < mealFloor)
-    ? (RESULT_TIERS.find(t => t.amount >= mealFloor) || RESULT_TIERS[RESULT_TIERS.length - 1])
-    : baseTier;
-
-  const randomMessage = finalTier.messages[Math.floor(Math.random() * finalTier.messages.length)];
-
   const extraItems = Array.isArray(answers.extra) ? answers.extra : (answers.extra ? [answers.extra] : []);
   const isGhosted = extraItems.some(e => e.label?.includes("연락 끊겼다"));
+
+  // isGhosted면 식대 업그레이드 무시하고 baseTier 사용
+  const finalTier = isGhosted
+    ? baseTier
+    : (mealFloor > 0 && baseTier.amount < mealFloor)
+      ? (RESULT_TIERS.find(t => t.amount >= mealFloor) || RESULT_TIERS[RESULT_TIERS.length - 1])
+      : baseTier;
+
+  const randomMessage = finalTier.messages[Math.floor(Math.random() * finalTier.messages.length)];
 
   return {
     total: finalScore,
@@ -587,7 +599,7 @@ function calcResult(answers) {
         ? "연락 끊겼다 청첩장 받은 거, 다들 겪어요. 3만원도 충분한 예의예요. 사실 안 가도 돼요."
         : randomMessage,
     },
-    upgradedByMeal: finalTier !== baseTier,
+    upgradedByMeal: !isGhosted && finalTier !== baseTier,
     relationLabel: answers[BASE_ID]?.label || null,
     isGhosted,
   };
@@ -595,11 +607,7 @@ function calcResult(answers) {
 
 async function fetchSimilarStats(amount) {
   try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(
-      import.meta.env.VITE_SUPABASE_URL,
-      import.meta.env.VITE_SUPABASE_ANON_KEY
-    );
+    const supabase = await getSupabase();
     const { data } = await supabase
       .from('calculations')
       .select('amount')
@@ -1239,11 +1247,7 @@ async function searchKakaoPlace(query) {
 // ─── Supabase DB 식대 조회 ───────────────────────────────────────────────────
 async function searchMealCostFromDB(name) {
   try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(
-      import.meta.env.VITE_SUPABASE_URL,
-      import.meta.env.VITE_SUPABASE_ANON_KEY
-    );
+    const supabase = await getSupabase();
     // 1차: venues 직접 검색
     const { data: directData } = await supabase
       .from('venues')
@@ -1289,6 +1293,10 @@ async function fetchMealCostFromAI(venueName, address) {
         }]
       })
     });
+    if (!res.ok) {
+      console.warn(`Claude API ${res.status} — AI 식대 추정 스킵`);
+      return null;
+    }
     const data = await res.json();
     const text = data.content?.filter(c => c.type === "text").map(c => c.text).join("") || "";
     const cleaned = text
@@ -1375,11 +1383,7 @@ function VenueSearch({ onSelect, onReport }) {
   }
     // 이 예식장 평균 축의금 조회
     try {
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY
-      );
+      const supabase = await getSupabase();
       const { data: venueCalcs } = await supabase
         .from('calculations')
         .select('amount')
@@ -1971,11 +1975,7 @@ function ReportModal({ onClose }) {
     if (!form.venue || !form.mealCost) { alert('예식장 이름과 식대는 필수예요!'); return; }
     setSubmitting(true);
     try {
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY
-      );
+      const supabase = await getSupabase();
 
       let fileUrl = null;
       if (form.file) {
@@ -2288,11 +2288,7 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
   useEffect(() => {
     const saveAndGetToken = async () => {
       try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(
-          import.meta.env.VITE_SUPABASE_URL,
-          import.meta.env.VITE_SUPABASE_ANON_KEY
-        );
+        const supabase = await getSupabase();
 
         const token = Math.random().toString(36).substring(2, 10);
 
@@ -2316,11 +2312,7 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
     // 투표 통계 로드
     (async () => {
       try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(
-          import.meta.env.VITE_SUPABASE_URL,
-          import.meta.env.VITE_SUPABASE_ANON_KEY
-        );
+        const supabase = await getSupabase();
         const { data } = await supabase
           .from('votes')
           .select('vote')
@@ -2426,11 +2418,7 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
       };
     });
     try {
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY
-      );
+      const supabase = await getSupabase();
       await supabase.from('votes').insert([{ amount: tier.amount, vote: v }]);
     } catch {}
   };
@@ -2569,11 +2557,13 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
             paddingTop: 10, fontSize: 12,
             color: cardTheme === "dark" ? "#888" : "#999"
           }}>
-            {tier.amount <= 30000 && "💭 내가 받는다면? 솔직히 크게 서운하진 않을 것 같아요."}
-            {tier.amount === 50000 && "💭 내가 받는다면? 딱 적당하다 싶을 금액이에요."}
-            {tier.amount === 70000 && "💭 내가 받는다면? 오, 신경 써줬구나 싶을 거예요."}
-            {tier.amount === 100000 && "💭 내가 받는다면? 진짜 친구구나 싶을 금액이에요."}
-            {tier.amount >= 150000 && "💭 내가 받는다면? 평생 기억할 것 같아요."}
+            {tier.amount <= 30000 && "💭 역지사지로? 솔직히 크게 서운하진 않을 것 같아요."}
+            {tier.amount === 50000 && "💭 역지사지로? 딱 적당하다 싶을 금액이에요."}
+            {tier.amount === 70000 && "💭 역지사지로? 오, 신경 써줬구나 싶을 거예요."}
+            {tier.amount === 100000 && "💭 역지사지로? 진짜 친구구나 싶을 금액이에요."}
+            {tier.amount === 150000 && "💭 역지사지로? 이 분은 내 결혼식에 꼭 와줬으면 해요."}
+            {tier.amount === 200000 && "💭 역지사지로? 받는 순간 눈물 날 것 같아요."}
+            {tier.amount >= 300000 && "💭 역지사지로? 평생 기억할 것 같아요."}
           </div>
         </div>
 
@@ -2644,12 +2634,15 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
                   </div>
                   {result.breakdown.map((item, i) => (
                     <div key={i} style={{
-                      display: "flex", justifyContent: "space-between",
-                      padding: "5px 0", borderBottom: i < result.breakdown.length - 1 ? "1px solid #f9f9f9" : "none"
+                      display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8,
+                      padding: "6px 0", borderBottom: i < result.breakdown.length - 1 ? "1px solid #f9f9f9" : "none"
                     }}>
-                      <span style={{ fontSize: 12, color: "#666" }}>{item.label}</span>
                       <span style={{
-                        fontSize: 12, fontWeight: 700,
+                        fontSize: 12, color: "#666", flex: 1,
+                        wordBreak: "keep-all", lineHeight: 1.5
+                      }}>{item.label}</span>
+                      <span style={{
+                        fontSize: 12, fontWeight: 700, flexShrink: 0,
                         color: item.score > 0 ? "#22C55E" : "#EF4444"
                       }}>
                         {item.score > 0 ? `+${item.score}` : item.score}점
@@ -3271,43 +3264,42 @@ export default function App() {
       borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 10,
       boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
         <div style={{
-          width: 36, height: 36, borderRadius: "50%",
+          width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
           background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
-          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16
         }}>💒</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>축의금 실시간 계산 중</div>
-          <div style={{ fontSize: 11, color: "#22C55E", fontWeight: 600 }}>● 온라인</div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)", whiteSpace: "nowrap" }}>축의금 계산기</div>
+          <div style={{ fontSize: 10, color: "#22C55E", fontWeight: 600 }}>● 실시간</div>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        {/* 복수 계산 목록 버튼 */}
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
         {multiResults.length > 0 && (
           <button onClick={() => setShowMulti(true)} style={{
-            padding: "7px 12px", borderRadius: 100, border: "none",
+            padding: "6px 10px", borderRadius: 100, border: "none",
             background: "#FFF5F5", color: "#FF6B6B",
-            cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit"
-          }}>📋 {multiResults.length}명</button>
+            cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit"
+          }}>📋 {multiResults.length}</button>
         )}
-        {/* 히스토리 버튼 */}
         <button onClick={() => setShowHistory(true)} style={{
-          padding: "7px 12px", borderRadius: 100, border: "none",
+          width: 32, height: 32, borderRadius: "50%", border: "none",
           background: "var(--surface2)", color: "var(--text2)",
-          cursor: "pointer", fontSize: 14, fontFamily: "inherit"
+          cursor: "pointer", fontSize: 14, fontFamily: "inherit",
+          display: "flex", alignItems: "center", justifyContent: "center"
         }}>📋</button>
-        {/* 다크모드 토글 */}
         <button onClick={() => setIsDark(d => { const next = !d; localStorage.setItem("darkMode", next); return next; })} style={{
-          padding: "7px 12px", borderRadius: 100, border: "none",
+          width: 32, height: 32, borderRadius: "50%", border: "none",
           background: "var(--surface2)", color: "var(--text2)",
-          cursor: "pointer", fontSize: 14, fontFamily: "inherit"
+          cursor: "pointer", fontSize: 14, fontFamily: "inherit",
+          display: "flex", alignItems: "center", justifyContent: "center"
         }}>{isDark ? "☀️" : "🌙"}</button>
         {isDone && (
           <button onClick={retry} style={{
-            padding: "7px 14px", borderRadius: 100, border: "none",
+            padding: "6px 10px", borderRadius: 100, border: "none",
             background: "var(--surface2)", color: "var(--text2)", cursor: "pointer",
-            fontSize: 12, fontWeight: 600, fontFamily: "inherit"
+            fontSize: 11, fontWeight: 600, fontFamily: "inherit", whiteSpace: "nowrap"
           }}>처음으로</button>
         )}
       </div>
