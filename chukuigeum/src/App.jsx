@@ -337,6 +337,122 @@ const KAKAO_REST_KEY = import.meta.env.VITE_KAKAO_REST_KEY;
 
 // ─── 컴포넌트들 ──────────────────────────────────────────────────────────────
 
+function MonthlyTop3Card() {
+  const [topAmounts, setTopAmounts] = useState(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { createClient } = await import("@supabase/supabase-js");
+        const supabase = createClient(
+          import.meta.env.VITE_SUPABASE_URL,
+          import.meta.env.VITE_SUPABASE_ANON_KEY
+        );
+
+        const { data } = await supabase
+          .from("calculations")
+          .select("amount")
+          .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
+        if (!data || data.length < 3) return;
+
+        const counts = {};
+        data.forEach(d => {
+          counts[d.amount] = (counts[d.amount] || 0) + 1;
+        });
+
+        const top3 = Object.entries(counts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([amount, count], i) => ({
+            rank: i + 1,
+            amount: Number(amount),
+            count,
+          }));
+
+        setTopAmounts(top3);
+      } catch {
+        setTopAmounts(null);
+      }
+    };
+
+    load();
+  }, []);
+
+  if (!topAmounts) return null;
+
+  return (
+    <div style={{
+      background: "#fff",
+      borderRadius: 18,
+      padding: 16,
+      margin: "18px 0",
+      boxShadow: "0 8px 24px rgba(0,0,0,0.06)"
+    }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: "#111", marginBottom: 12 }}>
+        🏆 이번 달 가장 많이 나온 축의금 TOP3
+      </div>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        {topAmounts.map(item => (
+          <div key={item.rank} style={{
+            flex: 1,
+            background: item.rank === 1 ? "#FFF7ED" : "#F8F8F8",
+            border: item.rank === 1 ? "1.5px solid #FED7AA" : "1px solid #eee",
+            borderRadius: 14,
+            padding: "12px 8px",
+            textAlign: "center"
+          }}>
+            <div style={{ fontSize: 18, marginBottom: 4 }}>
+              {item.rank === 1 ? "🥇" : item.rank === 2 ? "🥈" : "🥉"}
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: "#111" }}>
+              {formatAmount(item.amount)}
+            </div>
+            <div style={{ fontSize: 10, color: "#999" }}>
+              {item.count}명 선택
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ControversyBubbles() {
+  const bubbles = [
+    "💬 직장 상사 결혼식, 5만원 내면 욕 먹을까?",
+    "💬 부장님 자녀 결혼식, 안 가고 5만원 가능?",
+    "💬 전남친 결혼식인데 축의금 해야 할까?",
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, margin: "18px 0" }}>
+      {bubbles.map((text, i) => (
+        <div key={text} style={{
+          alignSelf: i % 2 === 0 ? "flex-start" : "flex-end",
+          maxWidth: "88%",
+          background: i % 2 === 0 ? "#fff" : "linear-gradient(135deg, #FF6B6B, #FF8E53)",
+          color: i % 2 === 0 ? "#333" : "#fff",
+          borderRadius: i % 2 === 0 ? "4px 18px 18px 18px" : "18px 4px 18px 18px",
+          padding: "11px 14px",
+          fontSize: 13,
+          fontWeight: 700,
+          lineHeight: 1.45,
+          boxShadow: "0 4px 14px rgba(0,0,0,0.06)",
+          animation: `fadeSlideIn 0.35s ease ${i * 0.15}s both`
+        }}>
+          {text}
+        </div>
+      ))}
+
+      <div style={{ fontSize: 12, color: "#999", textAlign: "center", marginTop: 4 }}>
+        다들 한 번쯤 고민하는 그 질문들
+      </div>
+    </div>
+  );
+}
+
 function TypingDots() {
   return (
     <div style={{ display: "flex", gap: 4, padding: "14px 16px", alignItems: "center" }}>
@@ -2108,6 +2224,9 @@ export default function App() {
                 </div>
               </div>
               <div style={{ animation: "slideUp 0.5s ease 0.7s both" }}>
+                <ControversyBubbles />
+                <MonthlyTop3Card />
+                
                 <button onClick={() => setStarted(true)} style={{
                   width: "100%", padding: "17px", borderRadius: 16, border: "none",
                   background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
