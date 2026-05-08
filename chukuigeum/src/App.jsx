@@ -1979,6 +1979,7 @@ export default function App() {
   const [answers, setAnswers] = useState({});
   const [isTyping, setIsTyping] = useState(false);
   const [isDone, setIsDone] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
   const [showReport, setShowReport] = useState(false);
   const [result, setResult] = useState(null);
   const [isDark, setIsDark] = useState(false);
@@ -2123,6 +2124,7 @@ export default function App() {
     ) {
       nextStep += 1;
     }
+    setCurrentStep(nextStep); // 추가
 
     if (nextStep >= CHAT_FLOW.length) {
       // 결과 계산
@@ -2238,7 +2240,19 @@ export default function App() {
       </div>
     </div>
 
-          {/* 인트로 배너 */}
+          {/* 진행률 바 */}
+          {started && !isDone && (
+            <div style={{ height: 3, background: "var(--border)", position: "relative" }}>
+              <div style={{
+                position: "absolute", left: 0, top: 0, height: "100%",
+                background: "linear-gradient(90deg, #FF6B6B, #FF8E53)",
+                borderRadius: "0 2px 2px 0",
+                width: `${Math.min((currentStep / CHAT_FLOW.length) * 100, 100)}%`,
+                transition: "width 0.4s cubic-bezier(0.4,0,0.2,1)"
+              }} />
+            </div>
+          )}
+
           {/* 인트로 배너 - 제거됨 */}
           {false && (
             <div style={{
