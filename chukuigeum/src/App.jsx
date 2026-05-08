@@ -4,7 +4,7 @@ import html2canvas from "html2canvas";
 // ─── 상수 ────────────────────────────────────────────────────────────────────
 
 const RESULT_TIERS = [
-  { min: -99, max: 10, amount: 30000, title: "마음만 받을게요 😅", emoji: "🌱", color: "#95a5a6",
+  { min: -99, max: 15, amount: 30000, title: "마음만 받을게요 😅", emoji: "🌱", color: "#95a5a6",
     messages: [
       "솔직히 말할게요. 이 분과의 인연은 얇아요. 3만원도 충분한 성의예요.",
       "억지로 더 낼 필요 없어요. 3만원은 예의를 지키는 최소한의 표현이에요.",
@@ -12,7 +12,7 @@ const RESULT_TIERS = [
       "3만원이 적다고 느껴진다면, 사실 그게 맞는 금액이에요.",
     ]
   },
-  { min: 11, max: 18, amount: 50000, title: "국룰 5만원! 🤝", emoji: "💵", color: "#27ae60",
+  { min: 16, max: 25, amount: 50000, title: "국룰 5만원! 🤝", emoji: "💵", color: "#27ae60",
     messages: [
       "축의금 세계의 황금비율. 5만원은 가장 정직한 표현이에요.",
       "대한민국 직장인의 99%가 선택하는 그 금액. 틀릴 수가 없어요.",
@@ -20,7 +20,7 @@ const RESULT_TIERS = [
       "고민할 필요 없어요. 5만원은 이미 국가 공인 표준이에요.",
     ]
   },
-  { min: 19, max: 26, amount: 70000, title: "7만원... 진심 🫡", emoji: "💐", color: "#2980b9",
+  { min: 26, max: 35, amount: 70000, title: "7만원... 진심 🫡", emoji: "💐", color: "#2980b9",
     messages: [
       "5만원은 좀 적고 10만원은 좀 부담스러운 그 사이. 따뜻한 시그널이에요.",
       "7만원은 '나 너 꽤 챙기는 사람이야'의 언어예요.",
@@ -28,7 +28,7 @@ const RESULT_TIERS = [
       "5에서 한 걸음 더. 그 한 걸음이 관계를 말해줘요.",
     ]
   },
-  { min: 27, max: 35, amount: 100000, title: "10만원, 진짜 친구 ✅", emoji: "👑", color: "#8e44ad",
+  { min: 36, max: 45, amount: 100000, title: "10만원, 진짜 친구 ✅", emoji: "👑", color: "#8e44ad",
     messages: [
       "이 분은 당신의 진짜 친구예요. 10만원짜리 우정은 흔하지 않아요.",
       "10만원을 자연스럽게 낼 수 있는 사람이 몇 명이나 돼요? 이 분은 그 안에 있어요.",
@@ -36,7 +36,7 @@ const RESULT_TIERS = [
       "받는 사람 입장에서 10만원짜리 봉투는 오래 기억해요.",
     ]
   },
-  { min: 36, max: 45, amount: 150000, title: "15만원... 형제야? 🥹", emoji: "🫂", color: "#e67e22",
+  { min: 46, max: 60, amount: 150000, title: "15만원... 형제야? 🥹", emoji: "🫂", color: "#e67e22",
     messages: [
       "이 정도면 그냥 가족이에요. 받는 분도 평생 기억할 거예요.",
       "15만원은 '내 결혼식에 꼭 와줘'의 언어예요.",
@@ -44,12 +44,36 @@ const RESULT_TIERS = [
       "축의금 상위 5%. 이 분은 당신 인생의 핵심 인물이에요.",
     ]
   },
-  { min: 46, max: 999, amount: 200000, title: "20만원+ 전생에 나라 구했나 🏆", emoji: "💎", color: "#c0392b",
+  { min: 61, max: 75, amount: 200000, title: "20만원+ 전생에 나라 구했나 🏆", emoji: "💎", color: "#c0392b",
     messages: [
       "이 분이 당신 삶에 미친 영향은 돈으로 환산이 안 돼요.",
       "20만원을 고민 없이 쓸 수 있는 관계. 당신은 복 받은 사람이에요.",
       "이 분에게 20만원은 사실 너무 적을 수도 있어요. 그래도 예의상 봉투에 담아요.",
       "축의금을 넘어서 이 분의 새 출발을 진심으로 응원하는 금액이에요.",
+    ]
+  },
+  { min: 76, max: 89, amount: 300000, title: "30만원, 이건 진짜 인생 친구 🌟", emoji: "🔥", color: "#e84393",
+    messages: [
+      "30만원짜리 관계. 당신 인생에 몇 명이나 될까요?",
+      "이 분은 당신의 인생 스토리에 반드시 등장하는 사람이에요.",
+      "30만원은 '너 없는 내 삶은 상상도 못 해'의 언어예요.",
+      "이 봉투를 건네는 순간, 상대방은 평생 기억할 거예요.",
+    ]
+  },
+  { min: 90, max: 99, amount: 500000, title: "50만원... 가족 그 이상 💍", emoji: "👨‍👩‍👧", color: "#6c3483",
+    messages: [
+      "50만원. 이 분은 당신의 가족이에요. 피가 안 섞였을 뿐.",
+      "이 금액을 고민 없이 쓸 수 있다면, 이 분은 당신 삶의 기둥이에요.",
+      "평생 곁에 있어준 사람에게 50만원은 오히려 적을 수도 있어요.",
+      "이 분의 결혼식은 당신 인생에서도 중요한 날이에요.",
+    ]
+  },
+  { min: 100, max: 999, amount: 1000000, title: "100만원+ 전생에 나라를 구했군요 🏆", emoji: "💎", color: "#c0392b",
+    messages: [
+      "100만원. 이 분은 당신의 모든 것을 알고도 곁에 있는 사람이에요.",
+      "이 금액이 아깝지 않다면, 당신은 정말 복 받은 사람이에요.",
+      "돈으로 환산할 수 없는 관계. 그래도 봉투에 담아야 하니까요.",
+      "이 분 없는 당신의 인생을 상상할 수 없죠? 그게 100만원이에요.",
     ]
   },
 ];
@@ -185,13 +209,40 @@ function formatAmount(n) {
   return `${n?.toLocaleString()}원`;
 }
 
-function calcResult(answers) {
-  const EXCLUDE = ["venue", "distance", "eat_at_venue"];
-  let relationScore = 0;
-  const breakdown = []; // 세부 내역
+// ─── 알고리즘 상수 ────────────────────────────────────────────────────────────
+// ─── 알고리즘 상수 ────────────────────────────────────────────────────────────
+const BASE_ID = "relation";
+const CORRECTION_IDS = ["venue", "distance", "eat_at_venue"];
+const INTIMACY_IDS_EXCLUDE = [BASE_ID, ...CORRECTION_IDS];
 
+function calcMaxIntimacy() {
+  return CHAT_FLOW.reduce((total, q) => {
+    if (INTIMACY_IDS_EXCLUDE.includes(q.id)) return total;
+    const maxVal = Math.max(...q.options.map(o => o.value));
+    return total + (maxVal > 0 ? maxVal : 0);
+  }, 0);
+}
+const MAX_INTIMACY = calcMaxIntimacy();
+
+const MAX_BASE = Math.max(...CHAT_FLOW.find(q => q.id === BASE_ID).options.map(o => o.value));
+// → 20 (가족)
+const MAX_RAW_SCORE = MAX_BASE + MAX_BASE * 1.0;
+// → 40 (거리 페널티는 제외, 보정항목이라서)
+
+function calcResult(answers) {
+  const breakdown = [];
+
+  // ① 베이스: 관계 유형
+  const baseAnswer = answers[BASE_ID];
+  const baseScore = baseAnswer?.value || 0;
+  if (baseScore !== 0) {
+    breakdown.push({ label: baseAnswer.label, score: baseScore });
+  }
+
+  // ② 친밀도 합산
+  let intimacySum = 0;
   CHAT_FLOW.forEach((q) => {
-    if (EXCLUDE.includes(q.id)) return;
+    if (INTIMACY_IDS_EXCLUDE.includes(q.id)) return;
     const ans = answers[q.id];
     if (!ans) return;
 
@@ -199,29 +250,36 @@ function calcResult(answers) {
       const items = Array.isArray(ans) ? ans : [ans];
       const score = items.reduce((s, v) => s + (typeof v === "object" ? v.value : v), 0);
       if (score !== 0) {
-        breakdown.push({
-          label: items.map(v => v.label).join(", "),
-          score,
-        });
+        breakdown.push({ label: items.map(v => v.label).join(", "), score });
       }
-      relationScore += score;
+      intimacySum += score;
     } else {
       const score = ans.value || 0;
       if (score !== 0) {
         breakdown.push({ label: ans.label, score });
       }
-      relationScore += score;
+      intimacySum += score;
     }
   });
 
-  // 거리 페널티
+  // ③ 보정: 거리
   const distanceScore = answers.distance?.value || 0;
   if (distanceScore !== 0) {
     breakdown.push({ label: answers.distance?.label, score: distanceScore });
   }
-  relationScore += distanceScore;
 
-  // 식대 최솟값
+  // ④ 최종 점수: 베이스 + 베이스 × 친밀도계수 + 거리보정
+  //    친밀도계수 = intimacySum / MAX_INTIMACY  (음수 허용, floor -1.0)
+  const intimacyCoeff = MAX_INTIMACY > 0
+    ? Math.max(intimacySum / MAX_INTIMACY, -1)
+    : 0;
+  const rawScore = baseScore + baseScore * intimacyCoeff;
+  const finalScore = Math.round(
+    Math.min((rawScore / MAX_RAW_SCORE) * 100, 100) + distanceScore
+  );
+  // 거리 페널티는 정규화 후 별도 적용 (100점 초과 방지)
+
+  // ⑤ 식대 최솟값 보정
   const venue = answers.venue;
   const eating = answers.eat_at_venue;
   const avgMeal = venue?.avgMeal || null;
@@ -229,7 +287,7 @@ function calcResult(answers) {
   const mealFloor = isEating && avgMeal ? avgMeal : 0;
 
   const baseTier = RESULT_TIERS.find(t =>
-    relationScore >= t.min && relationScore <= t.max
+    finalScore >= t.min && finalScore <= t.max
   ) || RESULT_TIERS[RESULT_TIERS.length - 1];
 
   const finalTier = (mealFloor > 0 && baseTier.amount < mealFloor)
@@ -239,8 +297,8 @@ function calcResult(answers) {
   const randomMessage = finalTier.messages[Math.floor(Math.random() * finalTier.messages.length)];
 
   return {
-    total: relationScore,
-    breakdown, // 세부 내역 추가!
+    total: finalScore,
+    breakdown,
     mealFloor,
     venue,
     tier: { ...finalTier, message: randomMessage },
