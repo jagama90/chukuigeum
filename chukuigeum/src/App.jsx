@@ -509,11 +509,11 @@ function VenueSearch({ onSelect }) {
     {/* 드롭다운 — input 아래로 */}
     {showSuggestions && suggestions.length > 0 && (
       <div style={{
-        position: "absolute", top: "100%", left: 0, right: 48,
-        background: "#fff", borderRadius: "0 0 12px 12px",
-        border: "1.5px solid #f0f0f0", borderTop: "none",
-        boxShadow: "0 8px 16px rgba(0,0,0,0.08)",
-        overflow: "hidden", zIndex: 100, marginTop: 2
+        position: "absolute", top: "100%", left: 0, right: 0,
+        background: "#fff", borderRadius: 12,
+        border: "1.5px solid #f0f0f0",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+        overflow: "hidden", zIndex: 100, marginTop: 6
       }}>
         {suggestions.map((p, i) => (
           <button key={i} onClick={() => {
