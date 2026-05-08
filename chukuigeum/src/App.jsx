@@ -5,17 +5,53 @@ import html2canvas from "html2canvas";
 
 const RESULT_TIERS = [
   { min: -99, max: 10, amount: 30000, title: "마음만 받을게요 😅", emoji: "🌱", color: "#95a5a6",
-    message: "솔직히 말할게요. 이 분과의 인연은 얇아요. 3만원도 충분한 성의예요." },
+    messages: [
+      "솔직히 말할게요. 이 분과의 인연은 얇아요. 3만원도 충분한 성의예요.",
+      "억지로 더 낼 필요 없어요. 3만원은 예의를 지키는 최소한의 표현이에요.",
+      "인연의 깊이가 곧 금액이에요. 얇은 인연엔 얇은 봉투가 정직해요.",
+      "3만원이 적다고 느껴진다면, 사실 그게 맞는 금액이에요.",
+    ]
+  },
   { min: 11, max: 18, amount: 50000, title: "국룰 5만원! 🤝", emoji: "💵", color: "#27ae60",
-    message: "축의금 세계의 황금비율. 5만원은 가장 정직한 표현이에요." },
+    messages: [
+      "축의금 세계의 황금비율. 5만원은 가장 정직한 표현이에요.",
+      "대한민국 직장인의 99%가 선택하는 그 금액. 틀릴 수가 없어요.",
+      "5만원은 '우리 사이가 나쁜 건 아니잖아요'의 언어예요.",
+      "고민할 필요 없어요. 5만원은 이미 국가 공인 표준이에요.",
+    ]
+  },
   { min: 19, max: 26, amount: 70000, title: "7만원... 진심 🫡", emoji: "💐", color: "#2980b9",
-    message: "5만원은 좀 적고 10만원은 좀 부담스러운 그 사이. 따뜻한 시그널이에요." },
+    messages: [
+      "5만원은 좀 적고 10만원은 좀 부담스러운 그 사이. 따뜻한 시그널이에요.",
+      "7만원은 '나 너 꽤 챙기는 사람이야'의 언어예요.",
+      "어중간해 보여도 이게 의외로 가장 기억에 남는 금액이에요.",
+      "5에서 한 걸음 더. 그 한 걸음이 관계를 말해줘요.",
+    ]
+  },
   { min: 27, max: 35, amount: 100000, title: "10만원, 진짜 친구 ✅", emoji: "👑", color: "#8e44ad",
-    message: "이 분은 당신의 진짜 친구예요. 10만원짜리 우정은 흔하지 않아요." },
+    messages: [
+      "이 분은 당신의 진짜 친구예요. 10만원짜리 우정은 흔하지 않아요.",
+      "10만원을 자연스럽게 낼 수 있는 사람이 몇 명이나 돼요? 이 분은 그 안에 있어요.",
+      "심리적 마지노선을 넘는 금액. 그만큼 이 분이 소중하다는 뜻이에요.",
+      "받는 사람 입장에서 10만원짜리 봉투는 오래 기억해요.",
+    ]
+  },
   { min: 36, max: 45, amount: 150000, title: "15만원... 형제야? 🥹", emoji: "🫂", color: "#e67e22",
-    message: "이 정도면 그냥 가족이에요. 받는 분도 평생 기억할 거예요." },
+    messages: [
+      "이 정도면 그냥 가족이에요. 받는 분도 평생 기억할 거예요.",
+      "15만원은 '내 결혼식에 꼭 와줘'의 언어예요.",
+      "이 분 없는 인생은 상상이 안 되죠? 그 마음이 15만원이에요.",
+      "축의금 상위 5%. 이 분은 당신 인생의 핵심 인물이에요.",
+    ]
+  },
   { min: 46, max: 999, amount: 200000, title: "20만원+ 전생에 나라 구했나 🏆", emoji: "💎", color: "#c0392b",
-    message: "이 분이 당신 삶에 미친 영향은 돈으로 환산이 안 돼요." },
+    messages: [
+      "이 분이 당신 삶에 미친 영향은 돈으로 환산이 안 돼요.",
+      "20만원을 고민 없이 쓸 수 있는 관계. 당신은 복 받은 사람이에요.",
+      "이 분에게 20만원은 사실 너무 적을 수도 있어요. 그래도 예의상 봉투에 담아요.",
+      "축의금을 넘어서 이 분의 새 출발을 진심으로 응원하는 금액이에요.",
+    ]
+  },
 ];
 
 const CHAT_FLOW = [
@@ -184,14 +220,45 @@ function calcResult(answers) {
   const finalTier = (mealFloor > 0 && baseTier.amount < mealFloor)
     ? (RESULT_TIERS.find(t => t.amount >= mealFloor) || RESULT_TIERS[RESULT_TIERS.length - 1])
     : baseTier;
+  const messages = finalTier.messages;
+  const randomMessage = messages[Math.floor(Math.random() * messages.length)];
 
   return {
     total: relationScore,
     mealFloor,
     venue,
-    tier: finalTier,
+    tier: { ...finalTier, message: randomMessage },
     upgradedByMeal: finalTier !== baseTier,
   };
+}
+
+async function fetchSimilarStats(amount) {
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      import.meta.env.VITE_SUPABASE_URL,
+      import.meta.env.VITE_SUPABASE_ANON_KEY
+    );
+    const { data } = await supabase
+      .from('calculations')
+      .select('amount')
+      .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()); // 최근 30일
+
+    if (!data || data.length < 5) return null; // 데이터 부족시 표시 안 함
+
+    const total = data.length;
+    const sameCount = data.filter(d => d.amount === amount).length;
+    const percent = Math.round((sameCount / total) * 100);
+
+    // 금액 분포
+    const dist = {};
+    data.forEach(d => { dist[d.amount] = (dist[d.amount] || 0) + 1; });
+    const mostCommon = Object.entries(dist).sort((a, b) => b[1] - a[1])[0];
+
+    return { total, sameCount, percent, mostCommonAmount: Number(mostCommon[0]) };
+  } catch {
+    return null;
+  }
 }
 
 const KAKAO_REST_KEY = import.meta.env.VITE_KAKAO_REST_KEY;
@@ -1024,6 +1091,7 @@ function ResultCard({ result, onRetry, onReport }) {
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [shareToken, setShareToken] = useState(null);
+  const [stats, setStats] = useState(null);
   const cardRef = useRef(null);
 
   useEffect(() => {
@@ -1050,6 +1118,7 @@ function ResultCard({ result, onRetry, onReport }) {
     };
 
     saveAndGetToken();
+    fetchSimilarStats(tier.amount).then(setStats);
   }, [result.total, tier.amount]);
 
   const handleCopy = () => {
@@ -1059,6 +1128,45 @@ function ResultCard({ result, onRetry, onReport }) {
     navigator.clipboard.writeText(
       `💒 축의금 계산 결과: ${formatAmount(tier.amount)}\n"${tier.title}"\n\n축의금, 이걸로 정하면 욕 안 먹습니다!\n나도 계산하기 → ${url}`
     ).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  };
+
+  const handleKakaoShare = () => {
+  const kakaoJsKey = import.meta.env.VITE_KAKAO_JS_KEY;
+
+  if (!window.Kakao) {
+    alert("카카오 SDK를 불러오지 못했어요.");
+    return;
+  }
+
+  if (!window.Kakao.isInitialized()) {
+    window.Kakao.init(kakaoJsKey);
+  }
+
+  const url = shareToken
+    ? `https://chukuigeum.vercel.app?token=${shareToken}`
+    : `https://chukuigeum.vercel.app`;
+
+  window.Kakao.Share.sendDefault({
+      objectType: "feed",
+      content: {
+        title: `추천 축의금은 ${formatAmount(tier.amount)}`,
+        description: `"${tier.title}"\n축의금, 이걸로 정하면 욕 안 먹습니다!`,
+        imageUrl: "https://chukuigeum.vercel.app/og-image.png",
+        link: {
+          mobileWebUrl: url,
+          webUrl: url,
+        },
+      },
+      buttons: [
+        {
+          title: "나도 계산하기",
+          link: {
+            mobileWebUrl: url,
+            webUrl: url,
+          },
+        },
+      ],
+    });
   };
 
   const handleSaveImage = async () => {
@@ -1119,6 +1227,46 @@ function ResultCard({ result, onRetry, onReport }) {
       </div>
     )}
 
+      {/* 비슷한 사람 통계 */}
+      {stats && (
+        <div style={{
+          background: "#f0f9ff", border: "1px solid #bae6fd",
+          borderRadius: 14, padding: "14px 16px", marginBottom: 12
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>
+            📊 최근 30일 통계
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ textAlign: "center", flex: 1 }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#0284c7" }}>
+                {stats.percent}%
+              </div>
+              <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
+                나와 비슷한 사람들이<br/>같은 금액 선택
+              </div>
+            </div>
+            <div style={{ width: 1, height: 40, background: "#bae6fd" }} />
+            <div style={{ textAlign: "center", flex: 1 }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#0284c7" }}>
+                {formatAmount(stats.mostCommonAmount)}
+              </div>
+              <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
+                가장 많이 선택한<br/>금액
+              </div>
+            </div>
+            <div style={{ width: 1, height: 40, background: "#bae6fd" }} />
+            <div style={{ textAlign: "center", flex: 1 }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#0284c7" }}>
+                {stats.total.toLocaleString()}명
+              </div>
+              <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
+                이번 달<br/>계산한 사람
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 핵심 문장 */}
       <div style={{
         background: "#f8f8f8", borderLeft: "3px solid #FF6B6B",
@@ -1150,7 +1298,7 @@ function ResultCard({ result, onRetry, onReport }) {
             {saving ? "⏳ 저장 중..." : "🖼️ 이미지 저장"}
           </button>
         </div>
-        <button style={{
+        <button onClick={handleKakaoShare} style={{
           width: "100%", padding: "13px", borderRadius: 14, border: "none",
           background: "#FEE500", color: "#3A1D1D", cursor: "pointer",
           fontSize: 14, fontWeight: 700, fontFamily: "inherit"
