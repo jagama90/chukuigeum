@@ -76,14 +76,13 @@ export default function Admin() {
   const [pw, setPw] = useState("");
   const [pwError, setPwError] = useState(false);
 
-  const [tab, setTab] = useState("reports"); // reports | calculations | charts
+  const [tab, setTab] = useState("reports");
   const [chartData, setChartData] = useState({ amountDist: [], scoreDist: [] });
   const [reports, setReports] = useState([]);
   const [calculations, setCalculations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
 
-  // 통계
   const [stats, setStats] = useState({
     totalCalcs: 0, todayCalcs: 0, totalReports: 0, pendingReports: 0,
     avgScore: 0, topAmount: 0
@@ -107,44 +106,6 @@ export default function Admin() {
     ]);
     setReports(reps || []);
     setCalculations(calcs || []);
-
-    const autoApproveMatches = async (reports) => {
-    // 같은 venue_name으로 pending 제보가 2개 이상이면 자동 승인
-    const pending = reports.filter(r => r.status === "pending");
-    const nameCount = {};
-    pending.forEach(r => {
-      const key = r.venue_name?.trim().toLowerCase();
-      if (!key) return;
-      nameCount[key] = (nameCount[key] || []);
-      nameCount[key].push(r);
-    });
-
-    for (const [, group] of Object.entries(nameCount)) {
-      if (group.length >= 2) {
-        // 평균 식대로 자동 승인
-        const avgCost = Math.round(
-          group.reduce((s, r) => s + (r.meal_cost || 0), 0) / group.length / 10000
-        ) * 10000;
-
-        for (const report of group) {
-          await supabase.from("venue_reports").update({ status: "approved" }).eq("id", report.id);
-
-          const { data: existing } = await supabase
-            .from("venues").select("id").eq("source_report_id", report.id).single();
-          if (!existing) {
-            await supabase.from("venues").insert([{
-              name: report.venue_name,
-              address: report.address,
-              meal_cost: avgCost || report.meal_cost,
-              source_report_id: report.id,
-            }]);
-          }
-        }
-        alert(`✅ "${group[0].venue_name}" — ${group.length}개 제보 일치로 자동 승인됐어요! (평균 식대: ${avgCost?.toLocaleString()}원)`);
-      }
-    }
-    await loadAll();
-  };
 
     // 통계 계산
     const today = new Date().toDateString();
@@ -196,18 +157,60 @@ export default function Admin() {
     setLoading(false);
   };
 
+  // ✅ 수정: loadAll 밖으로 꺼내고 reports를 인자로 받는 올바른 버전
+  const autoApproveMatches = async (reports) => {
+    const pending = reports.filter(r => r.status === "pending");
+    const nameCount = {};
+    pending.forEach(r => {
+      const key = r.venue_name?.trim().toLowerCase();
+      if (!key) return;
+      if (!nameCount[key]) nameCount[key] = [];
+      nameCount[key].push(r);
+    });
+
+    let totalApproved = 0;
+    for (const [, group] of Object.entries(nameCount)) {
+      if (group.length >= 2) {
+        const avgCost = Math.round(
+          group.reduce((s, r) => s + (r.meal_cost || 0), 0) / group.length / 10000
+        ) * 10000;
+
+        for (const report of group) {
+          await supabase.from("venue_reports").update({ status: "approved" }).eq("id", report.id);
+          // ✅ 수정: .single() → .maybeSingle() (결과 없을 때 406 방지)
+          const { data: existing } = await supabase
+            .from("venues").select("id").eq("source_report_id", report.id).maybeSingle();
+          if (!existing) {
+            await supabase.from("venues").insert([{
+              name: report.venue_name,
+              address: report.address,
+              meal_cost: avgCost || report.meal_cost,
+              source_report_id: report.id,
+            }]);
+          }
+          totalApproved++;
+        }
+        alert(`✅ "${group[0].venue_name}" — ${group.length}개 일치로 자동 승인! (평균 식대: ${avgCost?.toLocaleString()}원)`);
+      }
+    }
+    if (totalApproved === 0) {
+      alert("자동 승인 가능한 제보가 없어요.\n(같은 예식장 이름으로 2건 이상 필요해요)");
+    }
+    await loadAll();
+  };
+
   const updateReportStatus = async (id, status) => {
     await supabase.from("venue_reports").update({ status }).eq("id", id);
     setReports(prev => prev.map(r => r.id === id ? { ...r, status } : r));
     if (selectedReport?.id === id) setSelectedReport(prev => ({ ...prev, status }));
 
-    // 승인 시 자동으로 예식장 DB 등록
     if (status === "approved") {
       const report = reports.find(r => r.id === id);
       if (!report) return;
+      // ✅ 수정: .single() → .maybeSingle()
       const { data: existing } = await supabase
-        .from("venues").select("id").eq("source_report_id", id).single();
-      if (existing) return; // 이미 등록됨
+        .from("venues").select("id").eq("source_report_id", id).maybeSingle();
+      if (existing) return;
       const { error } = await supabase.from("venues").insert([{
         name: report.venue_name,
         address: report.address,
@@ -220,8 +223,9 @@ export default function Admin() {
   };
 
   const transferToVenues = async (report) => {
+    // ✅ 수정: .single() → .maybeSingle()
     const { data: existing } = await supabase
-      .from("venues").select("id").eq("source_report_id", report.id).single();
+      .from("venues").select("id").eq("source_report_id", report.id).maybeSingle();
     if (existing) { alert("이미 예식장 DB에 등록된 제보예요!"); return; }
     const { error } = await supabase.from("venues").insert([{
       name: report.venue_name,
@@ -302,15 +306,15 @@ export default function Admin() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button onClick={loadAll} style={{
-          padding: "6px 14px", borderRadius: 8, border: "1px solid #f0f0f0",
-          background: "#fff", cursor: "pointer", fontSize: 12, color: "#666",
-          fontFamily: "inherit", fontWeight: 600
-        }}>🔄 새로고침</button>
-        <button onClick={() => autoApproveMatches(reports)} style={{
-          padding: "6px 14px", borderRadius: 8, border: "none",
-          background: "#E8F5E9", cursor: "pointer", fontSize: 12, color: "#22C55E",
-          fontFamily: "inherit", fontWeight: 700
-        }}>⚡ 자동승인 검사</button>
+            padding: "6px 14px", borderRadius: 8, border: "1px solid #f0f0f0",
+            background: "#fff", cursor: "pointer", fontSize: 12, color: "#666",
+            fontFamily: "inherit", fontWeight: 600
+          }}>🔄 새로고침</button>
+          <button onClick={() => autoApproveMatches(reports)} style={{
+            padding: "6px 14px", borderRadius: 8, border: "none",
+            background: "#E8F5E9", cursor: "pointer", fontSize: 12, color: "#22C55E",
+            fontFamily: "inherit", fontWeight: 700
+          }}>⚡ 자동승인 검사</button>
           <button onClick={() => setAuthed(false)} style={{
             padding: "6px 14px", borderRadius: 8, border: "none",
             background: "#f5f5f5", cursor: "pointer", fontSize: 12, color: "#888",
@@ -466,7 +470,6 @@ export default function Admin() {
                     cursor: "pointer", fontSize: 12, color: "#aaa", fontFamily: "inherit"
                   }}
                 >검토중으로 되돌리기</button>
-                
               </div>
             )}
           </div>
