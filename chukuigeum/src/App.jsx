@@ -1325,6 +1325,78 @@ function ReportModal({ onClose }) {
   );
 }
 
+function ScoreDonut({ score, color }) {
+  const [displayed, setDisplayed] = useState(0);
+  const radius = 45;
+  const circumference = 2 * Math.PI * radius;
+  const pct = Math.min(Math.max(score, 0), 100);
+  const offset = circumference - (pct / 100) * circumference;
+
+  useEffect(() => {
+    let start = 0;
+    const step = Math.ceil(score / 40);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= score) { setDisplayed(score); clearInterval(timer); }
+      else setDisplayed(start);
+    }, 30);
+    return () => clearInterval(timer);
+  }, [score]);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 0 4px" }}>
+      <svg width={120} height={120} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={60} cy={60} r={radius} fill="none" stroke="#f0f0f0" strokeWidth={10} />
+        <circle
+          cx={60} cy={60} r={radius} fill="none"
+          stroke={color} strokeWidth={10}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          style={{
+            transition: "stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)",
+            strokeDashoffset: offset,
+          }}
+        />
+      </svg>
+      <div style={{
+        marginTop: -88, fontSize: 28, fontWeight: 900, color: "#111",
+        animation: "countUp 0.5s ease 0.3s both"
+      }}>
+        {displayed}
+        <span style={{ fontSize: 14, color: "#888", fontWeight: 600 }}>점</span>
+      </div>
+      <div style={{ marginTop: 12, fontSize: 12, color: "#888" }}>나와의 인연 점수</div>
+    </div>
+  );
+}
+
+function AmountCountUp({ amount, color }) {
+  const [displayed, setDisplayed] = useState(0);
+
+  useEffect(() => {
+    const duration = 800;
+    const steps = 30;
+    const increment = amount / steps;
+    let current = 0;
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= amount) { setDisplayed(amount); clearInterval(timer); }
+      else setDisplayed(Math.round(current / 10000) * 10000);
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [amount]);
+
+  return (
+    <div style={{
+      fontSize: 48, fontWeight: 900, color: "#111",
+      lineHeight: 1, marginBottom: 8, fontFamily: "inherit",
+      animation: "popIn 0.6s ease 0.2s both"
+    }}>
+      {displayed >= 10000 ? `${displayed / 10000}만원` : `${displayed.toLocaleString()}원`}
+    </div>
+  );
+}
+
 function ResultCard({ result, onRetry, onReport }) {
   const { total, tier } = result;
 
@@ -1437,45 +1509,56 @@ function ResultCard({ result, onRetry, onReport }) {
       <div ref={cardRef} style={{
         background: `linear-gradient(135deg, ${tier.color}18, ${tier.color}06)`,
         border: `2px solid ${tier.color}30`,
-        borderRadius: 20, padding: "24px 20px", textAlign: "center", marginBottom: 12
+        borderRadius: 20, padding: "24px 20px", textAlign: "center", marginBottom: 12,
+        animation: "fadeSlideIn 0.4s ease"
       }}>
-        <div style={{ fontSize: 52, marginBottom: 8 }}>{tier.emoji}</div>
-        <div style={{ fontSize: 11, fontWeight: 700, color: tier.color, letterSpacing: 1, marginBottom: 6 }}>
+        <div style={{ fontSize: 52, marginBottom: 8, animation: "popIn 0.5s ease 0.1s both" }}>
+          {tier.emoji}
+        </div>
+        <div style={{
+          fontSize: 11, fontWeight: 700, color: tier.color,
+          letterSpacing: 1, marginBottom: 6,
+          animation: "slideUp 0.4s ease 0.15s both"
+        }}>
           추천 축의금
         </div>
-        <div style={{ fontSize: 48, fontWeight: 900, color: "#111", lineHeight: 1, marginBottom: 8, fontFamily: "inherit" }}>
-          {formatAmount(tier.amount)}
+        <AmountCountUp amount={tier.amount} color={tier.color} />
+        <div style={{
+          fontSize: 17, fontWeight: 700, color: "#333", marginBottom: 10,
+          animation: "slideUp 0.4s ease 0.35s both"
+        }}>
+          {tier.title}
         </div>
-        <div style={{ fontSize: 17, fontWeight: 700, color: "#333", marginBottom: 10 }}>{tier.title}</div>
-        <p style={{ fontSize: 13, color: "#555", lineHeight: 1.6, margin: 0 }}>{tier.message}</p>
+        <p style={{
+          fontSize: 13, color: "#555", lineHeight: 1.6, margin: 0,
+          animation: "slideUp 0.4s ease 0.45s both"
+        }}>
+          {tier.message}
+        </p>
       </div>
 
       {/* 점수 */}
       <div style={{
         background: "#fff", borderRadius: 14, padding: "14px 16px",
-        marginBottom: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+        marginBottom: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+        animation: "staggerIn 0.4s ease 0.3s both"
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 14, color: "#666" }}>나와의 인연 점수</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 24, fontWeight: 900, color: "#111" }}>{total}점</span>
-            {result.breakdown?.length > 0 && (
-              <button
-                onClick={() => setBreakdownOpen(o => !o)}
-                style={{
-                  padding: "4px 10px", borderRadius: 100,
-                  border: "1px solid #f0f0f0", background: "#fafafa",
-                  color: "#888", cursor: "pointer", fontSize: 11,
-                  fontFamily: "inherit", fontWeight: 600
-                }}
-              >
-                {breakdownOpen ? "접기 ▲" : "왜 이 금액? ▼"}
-              </button>
-            )}
-          </div>
+        <ScoreDonut score={total} color={tier.color} />
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+          {result.breakdown?.length > 0 && (
+            <button
+              onClick={() => setBreakdownOpen(o => !o)}
+              style={{
+                padding: "4px 10px", borderRadius: 100,
+                border: "1px solid #f0f0f0", background: "#fafafa",
+                color: "#888", cursor: "pointer", fontSize: 11,
+                fontFamily: "inherit", fontWeight: 600
+              }}
+            >
+              {breakdownOpen ? "접기 ▲" : "왜 이 금액? ▼"}
+            </button>
+          )}
         </div>
-
-        {/* 아코디언 세부 내역 */}
         {breakdownOpen && result.breakdown?.length > 0 && (
           <div style={{
             borderTop: "1px solid #f5f5f5", paddingTop: 10, marginTop: 10,
@@ -1483,7 +1566,10 @@ function ResultCard({ result, onRetry, onReport }) {
             animation: "fadeSlideIn 0.2s ease"
           }}>
             {result.breakdown.map((item, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div key={i} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                animation: `staggerIn 0.3s ease ${i * 0.05}s both`
+              }}>
                 <span style={{ fontSize: 12, color: "#888", flex: 1, marginRight: 8 }}>{item.label}</span>
                 <span style={{
                   fontSize: 12, fontWeight: 700,
@@ -1833,6 +1919,10 @@ export default function App() {
   @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes bounce { 0%,80%,100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes countUp { from { opacity: 0; transform: translateY(20px) scale(0.8); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes popIn { 0% { opacity: 0; transform: scale(0.7); } 70% { transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes staggerIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
   button { font-family: 'Pretendard', -apple-system, sans-serif; }
   input { font-family: 'Pretendard', -apple-system, sans-serif; }
   ::-webkit-scrollbar { display: none; }
@@ -1919,20 +2009,23 @@ export default function App() {
           )}
                   {/* 인트로 화면 */}
           {!loadingSharedResult && !started && (
-            <div style={{ padding: "24px 16px", animation: "fadeSlideIn 0.5s ease" }}>
-              <div style={{ textAlign: "center", marginBottom: 24 }}>
-                 <div style={{ fontSize: 64, marginBottom: 20 }}>💒</div>
-                  <h1 style={{ fontSize: 28, fontWeight: 900, color: "#111", margin: "0 0 6px", fontFamily: "inherit" }}>얼마 내야 해?</h1><p style={{ fontSize: 15, color: "#888", margin: 0 }}>AI 축의금 계산기</p>
+            <div style={{ padding: "24px 16px" }}>
+              <div style={{ textAlign: "center", marginBottom: 24, animation: "popIn 0.6s ease forwards" }}>
+                <div style={{ fontSize: 64, marginBottom: 20 }}>💒</div>
+                <h1 style={{ fontSize: 28, fontWeight: 900, color: "#111", margin: "0 0 6px", fontFamily: "inherit" }}>얼마 내야 해?</h1>
+                <p style={{ fontSize: 15, color: "#888", margin: 0 }}>AI 축의금 계산기</p>
               </div>
-              <div style={{ background: "linear-gradient(135deg, #FF6B6B, #FF8E53)", borderRadius: 14, padding: "14px 16px", marginBottom: 12 }}>
-                <p style={{ fontSize: 16, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.4 }}>💬 축의금, 이걸로 정하면<br />욕 안 먹습니다.</p>
-              </div>
-              <div style={{ background: "#f8f8f8", borderLeft: "3px solid #FF6B6B", borderRadius: "0 12px 12px 0", padding: "12px 14px", marginBottom: 20 }}>
-                <p style={{ fontSize: 13, color: "#444", margin: 0, lineHeight: 1.7 }}>
-                  축의금은 <strong style={{ color: "#111" }}>"관계의 깊이 + 평소 교류 빈도"</strong>로<br />
-                  기준을 잡는 게 가장 안전하다.<br />
-                  <span style={{ color: "#FF6B6B", fontWeight: 700 }}>감정이 아니라 기준이 필요하다.</span>
-                </p>
+              <div style={{ animation: "slideUp 0.5s ease 0.2s both" }}>
+                <div style={{ background: "linear-gradient(135deg, #FF6B6B, #FF8E53)", borderRadius: 14, padding: "14px 16px", marginBottom: 12 }}>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.4 }}>💬 축의금, 이걸로 정하면<br />욕 안 먹습니다.</p>
+                </div>
+                <div style={{ background: "#f8f8f8", borderLeft: "3px solid #FF6B6B", borderRadius: "0 12px 12px 0", padding: "12px 14px", marginBottom: 20 }}>
+                  <p style={{ fontSize: 13, color: "#444", margin: 0, lineHeight: 1.7 }}>
+                    축의금은 <strong style={{ color: "#111" }}>"관계의 깊이 + 평소 교류 빈도"</strong>로<br />
+                    기준을 잡는 게 가장 안전하다.<br />
+                    <span style={{ color: "#FF6B6B", fontWeight: 700 }}>감정이 아니라 기준이 필요하다.</span>
+                  </p>
+                </div>
               </div>
               {[
                 { emoji: "🎯", text: "친밀도 기반 점수 계산" },
@@ -1940,12 +2033,22 @@ export default function App() {
                 { emoji: "📍", text: "거리·식사 여부까지 고려" },
                 { emoji: "🔗", text: "카카오 공유 가능" },
               ].map((item, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fff", borderRadius: 12, marginBottom: 8, border: "1px solid #f0f0f0" }}>
+                <div key={i} style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 16px", background: "#fff", borderRadius: 12,
+                  marginBottom: 8, border: "1px solid #f0f0f0",
+                  animation: `staggerIn 0.4s ease ${0.3 + i * 0.08}s both`,
+                }}>
                   <span style={{ fontSize: 20 }}>{item.emoji}</span>
                   <span style={{ fontSize: 14, color: "#444", fontWeight: 500 }}>{item.text}</span>
                 </div>
               ))}
-              <div style={{ background: "#f8f9ff", border: "1px solid #e0e8ff", borderRadius: 14, padding: "12px 16px", marginBottom: 20, marginTop: 12, display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{
+                background: "#f8f9ff", border: "1px solid #e0e8ff", borderRadius: 14,
+                padding: "12px 16px", marginBottom: 20, marginTop: 12,
+                display: "flex", alignItems: "center", gap: 10,
+                animation: "staggerIn 0.4s ease 0.65s both",
+              }}>
                 <span style={{ fontSize: 24 }}>💍</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 10, color: "#aaa" }}>SPONSORED</div>
@@ -1953,13 +2056,21 @@ export default function App() {
                   <div style={{ fontSize: 11, color: "#888" }}>제휴 웨딩플래너 무료 상담 →</div>
                 </div>
               </div>
-              <button onClick={() => setStarted(true)} style={{
-                width: "100%", padding: "17px", borderRadius: 16, border: "none",
-                background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
-                color: "#fff", cursor: "pointer", fontSize: 17, fontWeight: 800,
-                fontFamily: "inherit", boxShadow: "0 6px 24px rgba(255,107,107,0.35)"
-              }}>계산 시작하기 →</button>
-              <p style={{ textAlign: "center", fontSize: 11, color: "#ccc", marginTop: 12 }}>질문 11개 · 약 2분 소요 · 완전 무료</p>
+              <div style={{ animation: "slideUp 0.5s ease 0.7s both" }}>
+                <button onClick={() => setStarted(true)} style={{
+                  width: "100%", padding: "17px", borderRadius: 16, border: "none",
+                  background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
+                  color: "#fff", cursor: "pointer", fontSize: 17, fontWeight: 800,
+                  fontFamily: "inherit", boxShadow: "0 6px 24px rgba(255,107,107,0.35)",
+                  transition: "transform 0.15s, box-shadow 0.15s",
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 10px 28px rgba(255,107,107,0.45)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(255,107,107,0.35)"; }}
+                >
+                  계산 시작하기 →
+                </button>
+                <p style={{ textAlign: "center", fontSize: 11, color: "#ccc", marginTop: 12 }}>질문 11개 · 약 2분 소요 · 완전 무료</p>
+              </div>
             </div>
           )}
 
