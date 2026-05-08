@@ -96,15 +96,15 @@ const CHAT_FLOW = [
     ],
   },
   {
-    id: "distance",
-    botMessage: "집에서 식장까지 거리가 얼마나 돼요?",
-    type: "select",
-    options: [
-     { label: "🚶 10km 미만", value: 0 },
-     { label: "🚌 10km 이상", value: -1 },
-     { label: "🚗 20km 이상", value: -2 },
-     { label: "✈️ 타지역 / 지방", value: -4 },
-    ],
+  id: "distance",
+  botMessage: "집에서 식장까지 거리가 얼마나 돼요?",
+  type: "distance_select",  // 새 타입!
+  options: [
+    { label: "🚶 10km 미만", value: 0 },
+    { label: "🚌 10km 이상", value: -1 },
+    { label: "🚗 20km 이상", value: -2 },
+    { label: "✈️ 타지역 / 지방", value: -4 },
+  ],
   },
   {
     id: "after_honeymoon",
@@ -244,6 +244,76 @@ function UserMessage({ text }) {
       }}>
         {text}
       </div>
+    </div>
+  );
+}
+
+function DistanceSelect({ options, onSelect, selected, venuePlace }) {
+  const [loading, setLoading] = useState(false);
+  const [autoResult, setAutoResult] = useState(null);
+
+  const handleAuto = async () => {
+    setLoading(true);
+    const userLoc = await getUserLocation();
+    if (!userLoc) {
+      alert("위치 권한이 필요해요! 브라우저 설정에서 허용해주세요.");
+      setLoading(false); return;
+    }
+    const km = await getDistanceKm(userLoc.x, userLoc.y, venuePlace?.x, venuePlace?.y);
+    if (!km) {
+      alert("거리 계산에 실패했어요. 직접 선택해주세요.");
+      setLoading(false); return;
+    }
+    const matched =
+      km < 10 ? options[0] :
+      km < 20 ? options[1] :
+      km < 80 ? options[2] : options[3];
+
+    const result = { ...matched, label: `${matched.label.split(' ')[0]} ${km}km (자동계산)` };
+    setAutoResult({ km, result });
+    setLoading(false);
+    onSelect(result);
+  };
+
+  if (selected) {
+    return (
+      <div style={{ padding: "4px 0 16px 46px" }}>
+        <div style={{
+          padding: "11px 16px", borderRadius: 12,
+          border: "2px solid #FF6B6B", background: "#FFF5F5",
+          fontSize: 14, fontWeight: 700, color: "#FF6B6B"
+        }}>
+          {selected.label}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "4px 0 16px 46px", animation: "fadeSlideIn 0.3s ease" }}>
+      {options.map((opt) => (
+        <button key={opt.label} onClick={() => onSelect(opt)} style={{
+          padding: "14px 16px", borderRadius: 12, textAlign: "left", minHeight: 44,
+          border: "2px solid #f0f0f0", background: "#fff", color: "#333",
+          cursor: "pointer", fontSize: 14, fontWeight: 500, fontFamily: "inherit"
+        }}>
+          {opt.label}
+        </button>
+      ))}
+
+      {/* 자동계산 버튼 */}
+      <button onClick={handleAuto} disabled={loading} style={{
+        padding: "14px 16px", borderRadius: 12, textAlign: "center", minHeight: 44,
+        border: "2px dashed #FF6B6B", background: loading ? "#fff5f5" : "#fff",
+        color: "#FF6B6B", cursor: loading ? "default" : "pointer",
+        fontSize: 14, fontWeight: 700, fontFamily: "inherit",
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+      }}>
+        {loading
+          ? <><span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⏳</span> 계산 중...</>
+          : "📍 현재 위치로 자동 계산하기"
+        }
+      </button>
     </div>
   );
 }
@@ -523,6 +593,7 @@ function VenueSearch({ onSelect }) {
       kakaoUrl: selectedPlace?.place_url,
       naverMapUrl: mealInfo?.naver_map_url,
       tmapUrl: mealInfo?.tmap_url,
+      kakaoPlace: selectedPlace
     });
   };
 
@@ -1303,6 +1374,17 @@ export default function App() {
                     <VenueSearch
                       key={msg.id}
                       onSelect={(venue) => handleAnswer(msg.step, venue)}
+                    />
+                  );
+                }
+                if (step.type === "distance_select") {
+                  return (
+                    <DistanceSelect
+                      key={msg.id}
+                      options={step.options}
+                      selected={msg.selected}
+                      venuePlace={answers.venue?.kakaoPlace}
+                      onSelect={(opt) => !msg.selected && handleAnswer(msg.step, opt)}
                     />
                   );
                 }
