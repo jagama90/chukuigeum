@@ -658,7 +658,7 @@ async function fetchMealCostFromAI(venueName, address) {
 const GRADE_MAP = { 5: "5성급 호텔", 4: "4성급 / 고급 웨딩홀", 3: "일반 웨딩홀", 2: "일반 예식장", 1: "스몰웨딩" };
 const GRADE_SCORE = { 5: 10, 4: 7, 3: 5, 2: 3, 1: 2 };
 
-function VenueSearch({ onSelect }) {
+function VenueSearch({ onSelect, onReport }) {
   const [query, setQuery] = useState("");
   const [step, setStep] = useState("input");
   const [places, setPlaces] = useState([]);
@@ -949,10 +949,36 @@ function VenueSearch({ onSelect }) {
                   </>
                 )}
                 {mealInfo?.source === "none" && (
-                  <div style={{ fontSize: 13, color: "#888", textAlign: "center" }}>
-                    식대 정보를 찾지 못했어요.<br />아래에서 등급을 선택해주세요.
+                <div style={{
+                  background: "linear-gradient(135deg, #FFF7ED, #FFF1F2)",
+                  border: "1.5px solid #FED7AA",
+                  borderRadius: 14,
+                  padding: "16px",
+                  textAlign: "center"
+                }}>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>📮</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#111", marginBottom: 6 }}>
+                    아직 식대 정보가 없어요
                   </div>
-                )}
+                  <div style={{ fontSize: 12, color: "#666", lineHeight: 1.6, marginBottom: 12 }}>
+                    알고 있는 식대가 있다면 제보해주세요.<br />
+                    다음 사람에게 꽤 큰 도움이 돼요.
+                  </div>
+                  <button onClick={onReport} style={{
+                    padding: "10px 16px",
+                    borderRadius: 999,
+                    border: "none",
+                    background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
+                    color: "#fff",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    fontFamily: "inherit",
+                    cursor: "pointer"
+                  }}>
+                    식대 제보하고 계산 계속하기
+                  </button>
+                </div>
+              )}
               </div>
 
               {mealInfo?.source !== "none" ? (
@@ -1902,8 +1928,8 @@ export default function App() {
                 if (step.type === "venue_search") {
                   return (
                     <VenueSearch
-                      key={msg.id}
-                      onSelect={(venue) => handleAnswer(msg.step, venue)}
+                    onSelect={(answer) => handleAnswer(msg.step, answer)}
+                    onReport={() => setShowReport(true)}
                     />
                   );
                 }
