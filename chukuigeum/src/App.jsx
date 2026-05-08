@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import html2canvas from "html2canvas";
 
 // ─── 상수 ────────────────────────────────────────────────────────────────────
 
@@ -983,6 +984,8 @@ function ReportModal({ onClose }) {
 function ResultCard({ result, onRetry, onReport }) {
   const { total, tier } = result;
   const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const cardRef = useRef(null);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(
@@ -990,10 +993,30 @@ function ResultCard({ result, onRetry, onReport }) {
     ).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   };
 
+  const handleSaveImage = async () => {
+    if (!cardRef.current) return;
+    setSaving(true);
+    try {
+      const canvas = await html2canvas(cardRef.current, {
+        scale: 2, // 고해상도
+        useCORS: true,
+        backgroundColor: "#f2f3f7",
+        logging: false,
+      });
+      const link = document.createElement("a");
+      link.download = `축의금_${formatAmount(tier.amount)}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (e) {
+      alert("이미지 저장에 실패했어요.");
+    }
+    setSaving(false);
+  };
+
   return (
     <div style={{ padding: "4px 0 16px 0", animation: "fadeSlideIn 0.4s ease" }}>
-      {/* 결과 카드 */}
-      <div style={{
+      {/* 결과 카드 — 이미지 캡처 영역 */}
+      <div ref={cardRef} style={{
         background: `linear-gradient(135deg, ${tier.color}18, ${tier.color}06)`,
         border: `2px solid ${tier.color}30`,
         borderRadius: 20, padding: "24px 20px", textAlign: "center", marginBottom: 12
@@ -1042,15 +1065,25 @@ function ResultCard({ result, onRetry, onReport }) {
 
       {/* 공유 버튼 */}
       <div style={{ display: "flex", gap: 8, marginBottom: 10, flexDirection: "column" }}>
-        <button onClick={handleCopy} style={{
-          width: "100%", padding: "13px", borderRadius: 14, border: "2px solid #f0f0f0",
-          background: "#fff", color: "#333", cursor: "pointer",
-          fontSize: 14, fontWeight: 700, fontFamily: "inherit"
-        }}>
-          {copied ? "✅ 복사됨!" : "🔗 링크 복사"}
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={handleCopy} style={{
+            flex: 1, padding: "13px", borderRadius: 14, border: "2px solid #f0f0f0",
+            background: "#fff", color: "#333", cursor: "pointer",
+            fontSize: 14, fontWeight: 700, fontFamily: "inherit"
+          }}>
+            {copied ? "✅ 복사됨!" : "🔗 링크 복사"}
+          </button>
+          <button onClick={handleSaveImage} disabled={saving} style={{
+            flex: 1, padding: "13px", borderRadius: 14, border: "2px solid #f0f0f0",
+            background: saving ? "#f5f5f5" : "#fff", color: saving ? "#bbb" : "#333",
+            cursor: saving ? "default" : "pointer",
+            fontSize: 14, fontWeight: 700, fontFamily: "inherit"
+          }}>
+            {saving ? "⏳ 저장 중..." : "🖼️ 이미지 저장"}
+          </button>
+        </div>
         <button style={{
-          flex: 1, padding: "13px", borderRadius: 14, border: "none",
+          width: "100%", padding: "13px", borderRadius: 14, border: "none",
           background: "#FEE500", color: "#3A1D1D", cursor: "pointer",
           fontSize: 14, fontWeight: 700, fontFamily: "inherit"
         }}>
