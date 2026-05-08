@@ -278,10 +278,46 @@ const CHAT_FLOW = [
       { label: "⏳ 1년 넘었어요", value: 0 },
     ],
   },
+  // ✅ 신규: 청첩장 수신 경로
+  {
+    id: "invite_route",
+    botMessage: "청첩장은 어떻게 받으셨어요?",
+    type: "select",
+    options: [
+      { label: "🤝 직접 손에서 손으로", value: 4 },
+      { label: "💌 카톡으로 개인적으로", value: 2 },
+      { label: "📢 단체방에서", value: -1 },
+      { label: "📸 SNS / 스토리에서", value: -2 },
+    ],
+  },
+  // ✅ 신규: 개인 연락 여부
+  {
+    id: "personal_contact",
+    botMessage: "이 분과 단둘이 연락한 적 있나요?\n(그룹채팅 말고요)",
+    type: "select",
+    options: [
+      { label: "📱 자주 개인 연락해요", value: 4 },
+      { label: "💬 가끔 개인 연락해요", value: 2 },
+      { label: "👥 그룹 채팅에서만 봐요", value: 0 },
+    ],
+  },
   {
     id: "venue",
     botMessage: "예식장이 어디예요?\n직접 검색해보세요 🔍\n(아직 모르면 아래 '몰라요' 버튼을 눌러주세요)",
     type: "venue_search",
+  },
+  // venue 스킵 시에만 노출 (스킵 안 하면 handleAnswer에서 건너뜀)
+  {
+    id: "region_fallback",
+    botMessage: "예식장 지역이 어디예요?\n지역별 평균 식대를 반영할게요 🗺️",
+    type: "select",
+    options: [
+      { label: "🏙️ 서울 강남/서초/송파", value: 0, avgMeal: 130000 },
+      { label: "🌆 서울 기타", value: 0, avgMeal: 90000 },
+      { label: "🏢 수도권 (경기/인천)", value: 0, avgMeal: 70000 },
+      { label: "🌇 지방 광역시", value: 0, avgMeal: 60000 },
+      { label: "🏡 그 외 지방", value: 0, avgMeal: 50000 },
+    ],
   },
   {
     id: "eat_at_venue",
@@ -295,35 +331,25 @@ const CHAT_FLOW = [
     ],
   },
   {
-  id: "distance",
-  botMessage: "집에서 식장까지 거리가 얼마나 돼요?",
-  type: "distance_select",  // 새 타입!
-  options: [
-    { label: "🚶 10km 미만", value: 0 },
-    { label: "🚌 10km 이상", value: -1 },
-    { label: "🚗 20km 이상", value: -2 },
-    { label: "✈️ 타지역 / 지방", value: -4 },
-  ],
-  },
-  {
-    id: "after_honeymoon",
-    botMessage: "신혼여행 후 6개월 안에\n볼 수 있는 사이예요?",
-    type: "select",
+    id: "distance",
+    botMessage: "집에서 식장까지 거리가 얼마나 돼요?",
+    type: "distance_select",
     options: [
-      { label: "😄 당연히요!", value: 4 },
-      { label: "🙂 아마 볼 것 같아요", value: 2 },
-      { label: "🤷 모르겠어요", value: 1 },
-      { label: "😅 아마 못 볼 것 같아요", value: 0 },
+      { label: "🚶 10km 미만", value: 0 },
+      { label: "🚌 10km 이상", value: -1 },
+      { label: "🚗 20km 이상", value: -2 },
+      { label: "✈️ 타지역 / 지방", value: -4 },
     ],
   },
+  // ✅ 신규: 공통 친구
   {
-    id: "gender",
-    botMessage: "상대방이 이성이에요, 동성이에요?",
+    id: "common_friends",
+    botMessage: "이 분과 공통 친구가 몇 명이나 있어요?",
     type: "select",
     options: [
-      { label: "👫 이성이에요", value: 2 },
-      { label: "👬👭 동성이에요", value: 0 },
-      { label: "💫 구분 안 해도 돼요", value: 1 },
+      { label: "👨‍👩‍👧 여러 명 있어요", value: 3 },
+      { label: "👥 1~2명 있어요", value: 1 },
+      { label: "👤 나만 아는 사이예요", value: 0 },
     ],
   },
   {
@@ -331,12 +357,15 @@ const CHAT_FLOW = [
     botMessage: "마지막으로! 특이사항이 있나요?\n여러 개 골라도 돼요 😄",
     type: "multi_select",
     options: [
+      { label: "🥲 연락 끊겼다 청첩장 받음", value: -5 },
       { label: "💸 빌린 돈 안 갚음", value: -5 },
-      { label: "🍺 술자리 페이 항상 본인이", value: 3 },
       { label: "😢 힘들 때 곁에 있어준 사람", value: 5 },
+      { label: "🚑 아플 때 연락해준 사람", value: 4 },
       { label: "🤝 취업/이직 도와줬어요", value: 4 },
-      { label: "🙄 연락은 필요할 때만", value: -3 },
+      { label: "🍺 술자리 페이 항상 본인이", value: 3 },
+      { label: "🎁 내 행사 때 선물도 줬어요", value: 3 },
       { label: "🎂 내 생일 꼭 챙겨줘요", value: 2 },
+      { label: "🙄 연락은 필요할 때만", value: -3 },
       { label: "✨ 없어요", value: 0 },
     ],
   },
@@ -457,7 +486,7 @@ function HistoryPanel({ onClose }) {
 // ─── 알고리즘 상수 ────────────────────────────────────────────────────────────
 // ─── 알고리즘 상수 ────────────────────────────────────────────────────────────
 const BASE_ID = "relation";
-const CORRECTION_IDS = ["venue", "distance", "eat_at_venue"];
+const CORRECTION_IDS = ["venue", "distance", "eat_at_venue", "region_fallback"];
 const INTIMACY_IDS_EXCLUDE = [BASE_ID, ...CORRECTION_IDS];
 
 function calcMaxIntimacy() {
@@ -529,7 +558,8 @@ function calcResult(answers) {
   // ⑤ 식대 최솟값 보정
   const venue = answers.venue;
   const eating = answers.eat_at_venue;
-  const avgMeal = venue?.avgMeal || null;
+  const regionAvgMeal = answers.region_fallback?.avgMeal || null;
+  const avgMeal = venue?.avgMeal || regionAvgMeal || null;
   const isEating = (eating?.value ?? -99) >= 2;
   const mealFloor = isEating && avgMeal ? avgMeal : 0;
 
@@ -543,14 +573,23 @@ function calcResult(answers) {
 
   const randomMessage = finalTier.messages[Math.floor(Math.random() * finalTier.messages.length)];
 
+  const extraItems = Array.isArray(answers.extra) ? answers.extra : (answers.extra ? [answers.extra] : []);
+  const isGhosted = extraItems.some(e => e.label?.includes("연락 끊겼다"));
+
   return {
     total: finalScore,
     breakdown,
     mealFloor,
     venue,
-    tier: { ...finalTier, message: randomMessage },
+    tier: {
+      ...finalTier,
+      message: isGhosted
+        ? "연락 끊겼다 청첩장 받은 거, 다들 겪어요. 3만원도 충분한 예의예요. 사실 안 가도 돼요."
+        : randomMessage,
+    },
     upgradedByMeal: finalTier !== baseTier,
     relationLabel: answers[BASE_ID]?.label || null,
+    isGhosted,
   };
 }
 
@@ -866,17 +905,18 @@ function AnswerSummaryChips({ answers }) {
     if (text) chips.push({ emoji, text });
   };
 
-  add("relation",      "👤");
-  add("meal_count",    "🍽️");
-  add("my_wedding",    "💍");
-  add("kakao_speed",   "💬");
-  add("last_meet",     "📅");
+  add("relation",          "👤");
+  add("meal_count",        "🍽️");
+  add("my_wedding",        "💍");
+  add("kakao_speed",       "💬");
+  add("last_meet",         "📅");
+  add("invite_route",      "💌");
+  add("personal_contact",  "📱");
   if (answers.venue && !answers.venue.skipped) chips.push({ emoji: "💒", text: answers.venue.name });
-  add("eat_at_venue",  "🥢");
-  add("distance",      "📍");
-  add("after_honeymoon","🔮");
-  add("gender",        "👫");
-  add("extra",         "✨");
+  add("eat_at_venue",      "🥢");
+  add("distance",          "📍");
+  add("common_friends",    "👥");
+  add("extra",             "✨");
   if (chips.length === 0) return null;
 
   return (
@@ -2213,7 +2253,13 @@ function CheckList({ amount }) {
 }
 
 function ResultCard({ result, onRetry, onReport, onAddToList }) {
-  const { total, tier } = result;
+  const { total } = result;
+  const [tierOffset, setTierOffset] = useState(0);
+  const adjustedTierIndex = Math.max(0, Math.min(
+    RESULT_TIERS.length - 1,
+    RESULT_TIERS.findIndex(t => t.amount === result.tier.amount) + tierOffset
+  ));
+  const tier = { ...RESULT_TIERS[adjustedTierIndex], message: result.tier.message };
 
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -2224,7 +2270,9 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
   const [vote, setVote] = useState(null);
   const [voteStats, setVoteStats] = useState(null);
   const [shareStyle, setShareStyle] = useState("default");
-  const [cardTheme, setCardTheme] = useState("default"); // "default" | "pastel" | "dark"
+  const [cardTheme, setCardTheme] = useState("default");
+  const [weddingDate, setWeddingDate] = useState("");
+  const [dDay, setDDay] = useState(null);
   const cardRef = useRef(null);
   const shareCardRef = useRef(null);
 
@@ -2233,6 +2281,9 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
     document.title = `축의금 추천: ${formatAmount(tier.amount)} | 착한 축의금`;
     return () => { document.title = "축의금 계산기 | 착한 축의금"; };
   }, [tier.amount]);
+
+  // 결과 생성 시각 저장
+  const [calcTime] = useState(() => new Date());
 
   useEffect(() => {
     const saveAndGetToken = async () => {
@@ -2414,6 +2465,17 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
         borderRadius: 20, padding: "28px 20px 24px", textAlign: "center", marginBottom: 12,
         animation: "fadeSlideIn 0.4s ease"
       }}>
+        {/* 연락 끊겼다 청첩장 특별 배너 */}
+        {result.isGhosted && (
+          <div style={{
+            background: "#FFF5F5", border: "1.5px solid #FFB3B3",
+            borderRadius: 10, padding: "8px 12px", marginBottom: 12,
+            fontSize: 12, fontWeight: 700, color: "#C0392B", textAlign: "center"
+          }}>
+            🥲 연락 끊겼다 청첩장... 다들 공감해요
+          </div>
+        )}
+
         {/* 이모지 — 크고 여백 넉넉히 */}
         <div style={{ fontSize: 56, marginBottom: 16, animation: "popIn 0.5s ease 0.1s both", lineHeight: 1 }}>
           {tier.emoji}
@@ -2435,6 +2497,30 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
 
         {/* 금액 카운트업 */}
         <AmountCountUp amount={tier.amount} color={tier.color} />
+
+        {/* 금액 수동 조정 */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 8 }}>
+          <button onClick={() => setTierOffset(o => Math.max(-(RESULT_TIERS.findIndex(t => t.amount === result.tier.amount)), o - 1))} style={{
+            width: 32, height: 32, borderRadius: "50%", border: "2px solid #f0f0f0",
+            background: "#fff", cursor: "pointer", fontSize: 16, fontWeight: 700,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#aaa", fontFamily: "inherit"
+          }}>▼</button>
+          {tierOffset !== 0 && (
+            <span style={{ fontSize: 11, color: "#FF6B6B", fontWeight: 700 }}>
+              AI 추천에서 {tierOffset > 0 ? `+${tierOffset}` : tierOffset}티어 조정
+            </span>
+          )}
+          {tierOffset === 0 && (
+            <span style={{ fontSize: 11, color: "#bbb" }}>▲▼ 로 금액 직접 조정</span>
+          )}
+          <button onClick={() => setTierOffset(o => Math.min(RESULT_TIERS.length - 1 - RESULT_TIERS.findIndex(t => t.amount === result.tier.amount), o + 1))} style={{
+            width: 32, height: 32, borderRadius: "50%", border: "2px solid #f0f0f0",
+            background: "#fff", cursor: "pointer", fontSize: 16, fontWeight: 700,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#aaa", fontFamily: "inherit"
+          }}>▲</button>
+        </div>
 
         {/* 타이틀 */}
         <div style={{
@@ -2472,11 +2558,25 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
         <div style={{ width: 32, height: 2, background: `${tier.color}66`, borderRadius: 2, margin: "0 auto 12px", animation: "slideUp 0.4s ease 0.4s both" }} />
         {/* 멘트 */}
         <p style={{
-          fontSize: 13, color: "#555", lineHeight: 1.7, margin: 0,
+          fontSize: 13, color: cardTheme === "dark" ? "#bbb" : "#555", lineHeight: 1.7, margin: 0,
           animation: "slideUp 0.4s ease 0.45s both"
         }}>
           {tier.message}
         </p>
+
+        {/* 역지사지 한 줄 코멘트 */}
+        <div style={{
+          marginTop: 12, padding: "8px 14px",
+          background: cardTheme === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)",
+          borderRadius: 10, fontSize: 12,
+          color: cardTheme === "dark" ? "#aaa" : "#888"
+        }}>
+          {tier.amount <= 30000 && "💭 내가 받는다면? 솔직히 크게 서운하진 않을 것 같아요."}
+          {tier.amount === 50000 && "💭 내가 받는다면? 딱 적당하다 싶을 금액이에요."}
+          {tier.amount === 70000 && "💭 내가 받는다면? 오, 신경 써줬구나 싶을 거예요."}
+          {tier.amount === 100000 && "💭 내가 받는다면? 진짜 친구구나 싶을 금액이에요."}
+          {tier.amount >= 150000 && "💭 내가 받는다면? 평생 기억할 것 같아요."}
+        </div>
       </div>
 
       {/* 점수 */}
@@ -2777,6 +2877,53 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
         </div>
       )}
 
+     {/* D-Day 카운터 */}
+      <div style={{
+        background: "#fff", border: "1px solid #f0f0f0",
+        borderRadius: 16, padding: "16px", marginBottom: 12,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+      }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "#111", marginBottom: 10 }}>
+          📅 결혼식 날짜 입력하면 D-Day 알려줄게요
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            type="date"
+            value={weddingDate}
+            onChange={e => {
+              setWeddingDate(e.target.value);
+              if (e.target.value) {
+                const diff = Math.ceil((new Date(e.target.value) - new Date()) / (1000 * 60 * 60 * 24));
+                setDDay(diff);
+              }
+            }}
+            style={{
+              flex: 1, padding: "10px 12px", borderRadius: 10,
+              border: "1.5px solid #f0f0f0", fontSize: 14,
+              fontFamily: "inherit", outline: "none"
+            }}
+          />
+        </div>
+        {dDay !== null && (
+          <div style={{
+            marginTop: 10, textAlign: "center",
+            animation: "fadeSlideIn 0.3s ease"
+          }}>
+            <div style={{
+              fontSize: 32, fontWeight: 900,
+              color: dDay <= 7 ? "#EF4444" : dDay <= 30 ? "#F59E0B" : "#FF6B6B"
+            }}>
+              {dDay === 0 ? "D-Day 🎊" : dDay > 0 ? `D-${dDay}` : `D+${Math.abs(dDay)}`}
+            </div>
+            <div style={{ fontSize: 12, color: "#aaa", marginTop: 4 }}>
+              {dDay > 0
+                ? dDay <= 7 ? "🔥 곧이에요! 서두르세요" : dDay <= 30 ? "⏰ 한 달 안이에요" : "여유 있어요 😊"
+                : "이미 지난 날짜예요"}
+            </div>
+          </div>
+        )}
+      </div>
+
      {/* 축의금 준비 체크리스트 */}
       <CheckList amount={tier.amount} />
 
@@ -2798,6 +2945,14 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
       }}>
         🔄 다시 계산하기
       </button>
+
+      {/* 결과 만료 안내 */}
+      <div style={{
+        textAlign: "center", fontSize: 11, color: "#ccc",
+        marginTop: 12, marginBottom: 4
+      }}>
+        🕐 {calcTime.toLocaleDateString("ko-KR")} 기준 결과예요 · 상황이 바뀌면 다시 계산하세요
+      </div>
 
       {/* SEO용 관계별 가이드 — 접어두기 */}
       <details style={{ marginTop: 16 }}>
@@ -2978,16 +3133,19 @@ export default function App() {
     // 스마트 스킵 로직
     let nextStep = stepIndex + 1;
 
-    // venue skipped → distance 스킵
-    if (CHAT_FLOW[nextStep]?.id === "distance" && newAnswers.venue?.skipped) {
-      nextStep += 1;
+    // venue skipped → distance 스킵, region 표시
+    if (newAnswers.venue?.skipped) {
+      if (CHAT_FLOW[nextStep]?.id === "distance") nextStep += 1;
+      // region 질문은 venue 스킵한 경우만 → 아래 region_fallback 처리
+    } else {
+      // venue 선택한 경우 region_fallback 스킵
+      if (CHAT_FLOW[nextStep]?.id === "region_fallback") nextStep += 1;
     }
 
-    // SNS친구(value=1) / 지인(value=2) → after_honeymoon, gender 스킵
+    // SNS친구(value=1) / 지인(value=2) → common_friends 스킵
     const relationVal = newAnswers.relation?.value;
     if (relationVal <= 2) {
-      if (CHAT_FLOW[nextStep]?.id === "after_honeymoon") nextStep += 1;
-      if (CHAT_FLOW[nextStep]?.id === "gender") nextStep += 1;
+      if (CHAT_FLOW[nextStep]?.id === "common_friends") nextStep += 1;
     }
 
     setCurrentStep(nextStep);
