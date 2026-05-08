@@ -1615,6 +1615,7 @@ function ResultCard({ result, onRetry, onReport }) {
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const [shareToken, setShareToken] = useState(null);
   const [stats, setStats] = useState(null);
   const cardRef = useRef(null);
