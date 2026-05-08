@@ -142,7 +142,7 @@ const CHAT_FLOW = [
   },
   {
     id: "venue",
-    botMessage: "예식장이 어디예요?\n직접 검색해보세요 🔍",
+    botMessage: "예식장이 어디예요?\n직접 검색해보세요 🔍\n(아직 모르면 아래 '몰라요' 버튼을 눌러주세요)",
     type: "venue_search",
   },
   {
@@ -726,6 +726,23 @@ function VenueSearch({ onSelect, onReport }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [autoDistanceResult, setAutoDistanceResult] = useState(null);
 
+  const handleSkip = () => {
+    setConfirmed(true);
+    onSelect({
+      name: null,
+      address: null,
+      score: null,
+      label: null,
+      avgMeal: null,
+      kakaoUrl: null,
+      naverMapUrl: null,
+      tmapUrl: null,
+      kakaoPlace: null,
+      autoDistance: null,
+      skipped: true,
+    });
+  };
+
   const searchPlace = async () => {
     if (!query.trim()) return;
     setStep("searching");
@@ -805,7 +822,6 @@ function VenueSearch({ onSelect, onReport }) {
     <div style={{ padding: "4px 0 16px 46px", animation: "fadeSlideIn 0.3s ease" }}>
       {(step === "input" || step === "searching") && (
   <div style={{ position: "relative", marginBottom: 12 }}>
-    {/* input + 검색버튼 */}
     <div style={{ display: "flex", gap: 8 }}>
       <input
         type="text" value={query}
@@ -835,7 +851,6 @@ function VenueSearch({ onSelect, onReport }) {
       </button>
     </div>
 
-    {/* 드롭다운 — input 아래로 */}
     {showSuggestions && suggestions.length > 0 && (
       <div style={{
         position: "absolute", top: "100%", left: 0, right: 0,
@@ -861,6 +876,16 @@ function VenueSearch({ onSelect, onReport }) {
         ))}
       </div>
     )}
+
+    {/* 몰라요 버튼 */}
+    <button onClick={handleSkip} style={{
+      width: "100%", padding: "12px", borderRadius: 12, marginTop: 10,
+      border: "1px dashed #ddd", background: "#fafafa",
+      color: "#aaa", cursor: "pointer", fontSize: 13,
+      fontFamily: "inherit", fontWeight: 600
+    }}>
+      🤷 아직 예식장을 몰라요 → 직접 고를게요
+    </button>
   </div>
 )}
 
@@ -1345,27 +1370,35 @@ function ScoreDonut({ score, color }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 0 4px" }}>
-      <svg width={120} height={120} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={60} cy={60} r={radius} fill="none" stroke="#f0f0f0" strokeWidth={10} />
-        <circle
-          cx={60} cy={60} r={radius} fill="none"
-          stroke={color} strokeWidth={10}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          style={{
-            transition: "stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)",
-            strokeDashoffset: offset,
-          }}
-        />
-      </svg>
-      <div style={{
-        marginTop: -88, fontSize: 28, fontWeight: 900, color: "#111",
-        animation: "countUp 0.5s ease 0.3s both"
-      }}>
-        {displayed}
-        <span style={{ fontSize: 14, color: "#888", fontWeight: 600 }}>점</span>
+      {/* SVG + 숫자를 relative/absolute로 겹치기 */}
+      <div style={{ position: "relative", width: 120, height: 120 }}>
+        <svg width={120} height={120} style={{ transform: "rotate(-90deg)" }}>
+          <circle cx={60} cy={60} r={radius} fill="none" stroke="#f0f0f0" strokeWidth={10} />
+          <circle
+            cx={60} cy={60} r={radius} fill="none"
+            stroke={color} strokeWidth={10}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            style={{
+              transition: "stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)",
+              strokeDashoffset: offset,
+            }}
+          />
+        </svg>
+        {/* 중앙 숫자 — absolute로 정확히 가운데 */}
+        <div style={{
+          position: "absolute", inset: 0,
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center",
+          animation: "countUp 0.5s ease 0.3s both"
+        }}>
+          <span style={{ fontSize: 26, fontWeight: 900, color: "#111", lineHeight: 1 }}>
+            {displayed}
+          </span>
+          <span style={{ fontSize: 12, color: "#888", fontWeight: 600, marginTop: 2 }}>점</span>
+        </div>
       </div>
-      <div style={{ marginTop: 12, fontSize: 12, color: "#888" }}>나와의 인연 점수</div>
+      <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>나와의 인연 점수</div>
     </div>
   );
 }
@@ -1509,28 +1542,45 @@ function ResultCard({ result, onRetry, onReport }) {
       <div ref={cardRef} style={{
         background: `linear-gradient(135deg, ${tier.color}18, ${tier.color}06)`,
         border: `2px solid ${tier.color}30`,
-        borderRadius: 20, padding: "24px 20px", textAlign: "center", marginBottom: 12,
+        borderRadius: 20, padding: "28px 20px 24px", textAlign: "center", marginBottom: 12,
         animation: "fadeSlideIn 0.4s ease"
       }}>
-        <div style={{ fontSize: 52, marginBottom: 8, animation: "popIn 0.5s ease 0.1s both" }}>
+        {/* 이모지 — 크고 여백 넉넉히 */}
+        <div style={{ fontSize: 56, marginBottom: 16, animation: "popIn 0.5s ease 0.1s both", lineHeight: 1 }}>
           {tier.emoji}
         </div>
+
+        {/* 추천 축의금 배지 */}
         <div style={{
+          display: "inline-block",
+          background: `${tier.color}22`,
+          border: `1px solid ${tier.color}44`,
+          borderRadius: 100,
+          padding: "4px 14px",
           fontSize: 11, fontWeight: 700, color: tier.color,
-          letterSpacing: 1, marginBottom: 6,
+          letterSpacing: 1, marginBottom: 14,
           animation: "slideUp 0.4s ease 0.15s both"
         }}>
           추천 축의금
         </div>
+
+        {/* 금액 카운트업 */}
         <AmountCountUp amount={tier.amount} color={tier.color} />
+
+        {/* 타이틀 */}
         <div style={{
-          fontSize: 17, fontWeight: 700, color: "#333", marginBottom: 10,
+          fontSize: 16, fontWeight: 700, color: "#444", marginBottom: 12, marginTop: 4,
           animation: "slideUp 0.4s ease 0.35s both"
         }}>
           {tier.title}
         </div>
+
+        {/* 구분선 */}
+        <div style={{ width: 32, height: 2, background: `${tier.color}66`, borderRadius: 2, margin: "0 auto 12px", animation: "slideUp 0.4s ease 0.4s both" }} />
+
+        {/* 멘트 */}
         <p style={{
-          fontSize: 13, color: "#555", lineHeight: 1.6, margin: 0,
+          fontSize: 13, color: "#555", lineHeight: 1.7, margin: 0,
           animation: "slideUp 0.4s ease 0.45s both"
         }}>
           {tier.message}
