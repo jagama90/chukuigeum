@@ -11,7 +11,5 @@ import Admin from './Admin.jsx'
 const isAdmin = window.location.pathname === '/admin'
 
 createRoot(document.getElementById('root')).render(
-  <>
-  {isAdmin ? <Admin /> : <App />}
-</>,
+  isAdmin ? <Admin /> : <App />
 )
