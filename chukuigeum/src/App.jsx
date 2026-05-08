@@ -25,7 +25,7 @@ const CHAT_FLOW = [
     type: "select",
     options: [
       { label: "👨‍👩‍👧 가족 / 친척", value: 20 },
-      { label: "🤗 둘도없는 절친 / 베프", value: 12 },
+      { label: "🤗 쩔친 / 베프", value: 12 },
       { label: "😊 친한 친구", value: 8 },
       { label: "💼 직장 동료", value: 5 },
       { label: "👋 지인 / 아는 사람", value: 2 },
@@ -500,11 +500,27 @@ async function searchMealCostFromDB(name) {
       import.meta.env.VITE_SUPABASE_URL,
       import.meta.env.VITE_SUPABASE_ANON_KEY
     );
-    const { data } = await supabase
+    // 1차: venues 직접 검색
+    const { data: directData } = await supabase
       .from('venues')
       .select('name, meal_cost, grade, naver_map_url, tmap_url')
-      .or(`name.ilike.%${name}%,name.ilike.%${name.replace('서울', '').trim()}%`)
+      .ilike('name', `%${name}%`)
       .limit(5);
+
+    // 2차: aliases 테이블에서 검색 → venue_id로 venues 조인
+    const { data: aliasData } = await supabase
+      .from('venue_aliases')
+      .select('venues(name, meal_cost, grade, naver_map_url, tmap_url)')
+      .ilike('alias', `%${name}%`)
+      .limit(5);
+
+    const aliasVenues = (aliasData || []).map(a => a.venues).filter(Boolean);
+
+    // 중복 제거 후 합치기
+    const allData = [...(directData || []), ...aliasVenues]
+      .filter((v, i, arr) => arr.findIndex(x => x.name === v.name) === i);
+
+    const data = allData.length > 0 ? allData : null;
     return data?.length > 0 ? data : null;
   } catch {
     return null;
@@ -514,7 +530,7 @@ async function searchMealCostFromDB(name) {
 // ─── Claude API 식대 추정 ────────────────────────────────────────────────────
 async function fetchMealCostFromAI(venueName, address) {
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("/api/claude", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -531,7 +547,26 @@ async function fetchMealCostFromAI(venueName, address) {
     });
     const data = await res.json();
     const text = data.content?.filter(c => c.type === "text").map(c => c.text).join("") || "";
-    return JSON.parse(text.replace(/```json|```/g, "").trim());
+    const cleaned = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    try {
+      const parsed = JSON.parse(cleaned);
+
+      if (!parsed || typeof parsed !== "object") return null;
+
+      return {
+        meal_cost_min: Number(parsed.meal_cost_min) || null,
+        meal_cost_max: Number(parsed.meal_cost_max) || null,
+        grade: Number(parsed.grade) || 3,
+        confidence: parsed.confidence || "low",
+      };
+    } catch (e) {
+      console.error("Claude JSON 파싱 실패:", cleaned);
+      return null;
+    }
   } catch {
     return null; // 로컬에서는 CORS로 막힘, 배포 후 정상 작동
   }
@@ -610,6 +645,7 @@ function VenueSearch({ onSelect }) {
       : mealInfo?.meal_cost_min && mealInfo?.meal_cost_max
         ? Math.round((mealInfo.meal_cost_min + mealInfo.meal_cost_max) / 2)
         : null;
+    const venueName = selectedPlace?.place_name || query;
     onSelect({
       name: selectedPlace?.place_name || query,
       address: selectedPlace?.address_name || "",
@@ -619,7 +655,8 @@ function VenueSearch({ onSelect }) {
       kakaoUrl: selectedPlace?.place_url,
       naverMapUrl: mealInfo?.naver_map_url,
       tmapUrl: mealInfo?.tmap_url,
-      kakaoPlace: selectedPlace
+      kakaoPlace: selectedPlace,
+      autoDistance: autoDistanceResult,
     });
   };
 
@@ -983,13 +1020,44 @@ function ReportModal({ onClose }) {
 
 function ResultCard({ result, onRetry, onReport }) {
   const { total, tier } = result;
+
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [shareToken, setShareToken] = useState(null);
   const cardRef = useRef(null);
 
+  useEffect(() => {
+    const saveAndGetToken = async () => {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+          import.meta.env.VITE_SUPABASE_URL,
+          import.meta.env.VITE_SUPABASE_ANON_KEY
+        );
+
+        const token = Math.random().toString(36).substring(2, 10);
+
+        await supabase.from('calculations').insert([{
+          score: result.total,
+          amount: tier.amount,
+          share_token: token,
+        }]);
+
+        setShareToken(token);
+      } catch (e) {
+        console.error('토큰 저장 실패:', e);
+      }
+    };
+
+    saveAndGetToken();
+  }, [result.total, tier.amount]);
+
   const handleCopy = () => {
+    const url = shareToken
+      ? `https://chukuigeum.vercel.app?token=${shareToken}`
+      : `https://chukuigeum.vercel.app`;
     navigator.clipboard.writeText(
-      `💒 축의금 계산 결과: ${formatAmount(tier.amount)}\n"${tier.title}"\n\n축의금, 이걸로 정하면 욕 안 먹습니다!\n나도 계산하기 → https://chukuigeum.vercel.app`
+      `💒 축의금 계산 결과: ${formatAmount(tier.amount)}\n"${tier.title}"\n\n축의금, 이걸로 정하면 욕 안 먹습니다!\n나도 계산하기 → ${url}`
     ).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   };
 
@@ -1441,7 +1509,7 @@ export default function App() {
                       options={step.options}
                       selected={msg.selected}
                       venuePlace={answers.venue?.kakaoPlace}
-                      onSelect={(opt) => !msg.selected && handleAnswer(msg.step, opt)}
+                      onSelect={(opt) => handleAnswer(msg.step, opt)}
                       onReselect={() => {
                         setMessages(prev => {
                           const idx = prev.findIndex(m => m.id === msg.id);

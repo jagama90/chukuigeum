@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabase";
 
 // ─── 비밀번호 (실제 서비스에서는 Supabase Auth로 교체) ──────────────────────
-const ADMIN_PASSWORD = "chukui2024!";
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
 // ─── 유틸 ────────────────────────────────────────────────────────────────────
 function formatAmount(n) {
