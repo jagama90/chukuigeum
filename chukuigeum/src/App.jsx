@@ -1350,14 +1350,12 @@ function ReportModal({ onClose }) {
   );
 }
 
-function ScoreDonut({ score, color }) {
+function ScoreBar({ score, color }) {
   const [displayed, setDisplayed] = useState(0);
-  const radius = 45;
-  const circumference = 2 * Math.PI * radius;
-  const pct = Math.min(Math.max(score, 0), 100);
-  const offset = circumference - (pct / 100) * circumference;
+  const [barWidth, setBarWidth] = useState(0);
 
   useEffect(() => {
+    // 카운트업
     let start = 0;
     const step = Math.ceil(score / 40);
     const timer = setInterval(() => {
@@ -1365,40 +1363,48 @@ function ScoreDonut({ score, color }) {
       if (start >= score) { setDisplayed(score); clearInterval(timer); }
       else setDisplayed(start);
     }, 30);
-    return () => clearInterval(timer);
+
+    // 바 애니메이션은 약간 딜레이
+    const barTimer = setTimeout(() => setBarWidth(score), 100);
+    return () => { clearInterval(timer); clearTimeout(barTimer); };
   }, [score]);
 
+  const getLabel = (s) => {
+    if (s >= 90) return "인생 최고의 인연 💎";
+    if (s >= 70) return "정말 소중한 사람 🔥";
+    if (s >= 50) return "꽤 가까운 사이 😊";
+    if (s >= 30) return "알고 지내는 사이 👋";
+    return "얕은 인연 🌱";
+  };
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "8px 0 4px" }}>
-      {/* SVG + 숫자를 relative/absolute로 겹치기 */}
-      <div style={{ position: "relative", width: 120, height: 120 }}>
-        <svg width={120} height={120} style={{ transform: "rotate(-90deg)" }}>
-          <circle cx={60} cy={60} r={radius} fill="none" stroke="#f0f0f0" strokeWidth={10} />
-          <circle
-            cx={60} cy={60} r={radius} fill="none"
-            stroke={color} strokeWidth={10}
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            style={{
-              transition: "stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)",
-              strokeDashoffset: offset,
-            }}
-          />
-        </svg>
-        {/* 중앙 숫자 — absolute로 정확히 가운데 */}
-        <div style={{
-          position: "absolute", inset: 0,
-          display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center",
-          animation: "countUp 0.5s ease 0.3s both"
-        }}>
-          <span style={{ fontSize: 26, fontWeight: 900, color: "#111", lineHeight: 1 }}>
-            {displayed}
-          </span>
-          <span style={{ fontSize: 12, color: "#888", fontWeight: 600, marginTop: 2 }}>점</span>
+    <div style={{ padding: "4px 0 8px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 10 }}>
+        <div>
+          <div style={{ fontSize: 12, color: "#999", marginBottom: 4 }}>나와의 인연 점수</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: color }}>{getLabel(score)}</div>
+        </div>
+        <div style={{ fontSize: 36, fontWeight: 900, color: "#111", lineHeight: 1, animation: "countUp 0.5s ease 0.2s both" }}>
+          {displayed}<span style={{ fontSize: 14, color: "#aaa", fontWeight: 600 }}>점</span>
         </div>
       </div>
-      <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>나와의 인연 점수</div>
+
+      {/* 바 */}
+      <div style={{ height: 8, background: "#f0f0f0", borderRadius: 100, overflow: "hidden" }}>
+        <div style={{
+          height: "100%", borderRadius: 100,
+          background: `linear-gradient(90deg, ${color}88, ${color})`,
+          width: `${barWidth}%`,
+          transition: "width 1.2s cubic-bezier(0.4,0,0.2,1)",
+        }} />
+      </div>
+
+      {/* 눈금 */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+        {["0", "25", "50", "75", "100"].map(v => (
+          <span key={v} style={{ fontSize: 10, color: "#ccc" }}>{v}</span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1652,39 +1658,40 @@ function ResultCard({ result, onRetry, onReport }) {
       {/* 비슷한 사람 통계 */}
       {stats && (
         <div style={{
-          background: "#f0f9ff", border: "1px solid #bae6fd",
-          borderRadius: 14, padding: "14px 16px", marginBottom: 12
+          background: "#fff", border: "1px solid #f0f0f0",
+          borderRadius: 16, padding: "16px", marginBottom: 12,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+          animation: "staggerIn 0.4s ease 0.5s both"
         }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>
-            📊 최근 30일 통계
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", letterSpacing: 1, marginBottom: 12 }}>
+            📊 최근 30일 · {stats.total.toLocaleString()}명 참여
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ textAlign: "center", flex: 1 }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: "#0284c7" }}>
-                {stats.percent}%
-              </div>
-              <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
-                나와 비슷한 사람들이<br/>같은 금액 선택
-              </div>
+
+          {/* 이 금액 선택 비율 */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <span style={{ fontSize: 13, color: "#555" }}>나와 비슷한 사람들의 선택</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: "#111" }}>{stats.percent}%</span>
             </div>
-            <div style={{ width: 1, height: 40, background: "#bae6fd" }} />
-            <div style={{ textAlign: "center", flex: 1 }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: "#0284c7" }}>
-                {formatAmount(stats.mostCommonAmount)}
-              </div>
-              <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
-                가장 많이 선택한<br/>금액
-              </div>
+            <div style={{ height: 6, background: "#f5f5f5", borderRadius: 100, overflow: "hidden" }}>
+              <div style={{
+                height: "100%", borderRadius: 100,
+                background: "linear-gradient(90deg, #FF6B6B, #FF8E53)",
+                width: `${stats.percent}%`,
+                transition: "width 1s ease 0.6s",
+              }} />
             </div>
-            <div style={{ width: 1, height: 40, background: "#bae6fd" }} />
-            <div style={{ textAlign: "center", flex: 1 }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: "#0284c7" }}>
-                {stats.total.toLocaleString()}명
-              </div>
-              <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
-                이번 달<br/>계산한 사람
-              </div>
-            </div>
+          </div>
+
+          {/* 최다 선택 금액 */}
+          <div style={{
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            padding: "10px 12px", background: "#fafafa", borderRadius: 10
+          }}>
+            <span style={{ fontSize: 12, color: "#888" }}>이번 달 가장 많이 낸 금액</span>
+            <span style={{ fontSize: 15, fontWeight: 800, color: "#FF6B6B" }}>
+              {formatAmount(stats.mostCommonAmount)}
+            </span>
           </div>
         </div>
       )}
@@ -1901,7 +1908,7 @@ export default function App() {
     // 유저 메시지 추가
     const userText = Array.isArray(answer)
       ? answer.map(a => a.label).join(", ")
-      : answer.label || answer.name || String(answer);
+      : answer.label || answer.name || (answer.skipped ? "아직 몰라요 🤷" : String(answer));
 
     setMessages(prev => prev.map(m =>
       m.type === "options" && m.step === stepIndex
