@@ -1309,7 +1309,7 @@ async function fetchMealCostFromAI(venueName, address) {
 const GRADE_MAP = { 5: "5성급 호텔", 4: "4성급 / 고급 웨딩홀", 3: "일반 웨딩홀", 2: "일반 예식장", 1: "스몰웨딩" };
 const GRADE_SCORE = { 5: 10, 4: 7, 3: 5, 2: 3, 1: 2 };
 
-function VenueSearch({ onSelect, onReport }) {
+function VenueSearch({ onSelect, onReport, onReselect }) {
   const [query, setQuery] = useState("");
   const [step, setStep] = useState("input");
   const [places, setPlaces] = useState([]);
@@ -1429,7 +1429,31 @@ function VenueSearch({ onSelect, onReport }) {
     });
   };
 
-  if (confirmed) return null;
+  if (confirmed) {
+    const venueName = selectedPlace?.place_name || query || "아직 몰라요 🤷";
+    return (
+      <div style={{ padding: "4px 0 16px 46px", animation: "fadeSlideIn 0.3s ease" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{
+            flex: 1, padding: "11px 16px", borderRadius: 12,
+            border: "2px solid #FF6B6B", background: "#FFF5F5",
+            fontSize: 14, fontWeight: 700, color: "#FF6B6B"
+          }}>
+            💒 {venueName}
+          </div>
+          {onReselect && (
+            <button onClick={onReselect} style={{
+              padding: "9px 12px", borderRadius: 10, border: "1px solid #f0f0f0",
+              background: "#fff", color: "#999", cursor: "pointer",
+              fontSize: 12, fontFamily: "inherit", whiteSpace: "nowrap"
+            }}>
+              ✏️ 다시
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: "4px 0 16px 46px", animation: "fadeSlideIn 0.3s ease" }}>
@@ -2240,12 +2264,7 @@ function CheckList({ amount }) {
 
 function ResultCard({ result, onRetry, onReport, onAddToList }) {
   const { total } = result;
-  const [tierOffset, setTierOffset] = useState(0);
-  const adjustedTierIndex = Math.max(0, Math.min(
-    RESULT_TIERS.length - 1,
-    RESULT_TIERS.findIndex(t => t.amount === result.tier.amount) + tierOffset
-  ));
-  const tier = { ...RESULT_TIERS[adjustedTierIndex], message: result.tier.message };
+  const tier = result.tier;
 
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -2466,31 +2485,6 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
                 cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit"
               }}>{t.label}</button>
             ))}
-          </div>
-          {/* 금액 ▲▼ */}
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            {tierOffset !== 0 && (
-              <span style={{
-                fontSize: 10, color: tier.color, fontWeight: 700,
-                background: `${tier.color}15`, borderRadius: 100, padding: "2px 8px"
-              }}>
-                {tierOffset > 0 ? `+${tierOffset}` : tierOffset}티어
-              </span>
-            )}
-            <button onClick={() => setTierOffset(o => Math.max(-(RESULT_TIERS.findIndex(t => t.amount === result.tier.amount)), o - 1))} style={{
-              width: 26, height: 26, borderRadius: "50%",
-              border: "none",
-              background: cardTheme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
-              cursor: "pointer", fontSize: 12,
-              color: cardTheme === "dark" ? "#aaa" : "#888", fontFamily: "inherit"
-            }}>▼</button>
-            <button onClick={() => setTierOffset(o => Math.min(RESULT_TIERS.length - 1 - RESULT_TIERS.findIndex(t => t.amount === result.tier.amount), o + 1))} style={{
-              width: 26, height: 26, borderRadius: "50%",
-              border: "none",
-              background: cardTheme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
-              cursor: "pointer", fontSize: 12,
-              color: cardTheme === "dark" ? "#aaa" : "#888", fontFamily: "inherit"
-            }}>▲</button>
           </div>
         </div>
 
@@ -2739,12 +2733,12 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
               이 두 가지로 기준을 잡는 게 가장 안전해요.
             </div>
             <div style={{
-              display: "inline-block", marginTop: 10,
-              background: "#FF6B6B", color: "#fff",
-              borderRadius: 100, padding: "4px 14px",
-              fontSize: 11, fontWeight: 700
+              marginTop: 12,
+              fontSize: 13, fontWeight: 800,
+              color: "#FF6B6B",
+              letterSpacing: "-0.3px"
             }}>
-              감정이 아니라 기준이 필요해요
+              감정이 아니라 — <span style={{ textDecoration: "underline", textDecorationColor: "#FF6B6B55", textUnderlineOffset: 3 }}>기준이 필요해요.</span>
             </div>
           </div>
         </div>
@@ -3513,8 +3507,22 @@ export default function App() {
                 if (step.type === "venue_search") {
                   return (
                     <VenueSearch
-                    onSelect={(answer) => handleAnswer(msg.step, answer)}
-                    onReport={() => setShowReport(true)}
+                      key={msg.id}
+                      onSelect={(answer) => handleAnswer(msg.step, answer)}
+                      onReport={() => setShowReport(true)}
+                      onReselect={() => {
+                        setMessages(prev => {
+                          const idx = prev.findIndex(m => m.id === msg.id);
+                          return prev.slice(0, idx + 1);
+                        });
+                        setAnswers(prev => {
+                          const newA = { ...prev };
+                          CHAT_FLOW.slice(msg.step).forEach(q => delete newA[q.id]);
+                          return newA;
+                        });
+                        setIsDone(false);
+                        setResult(null);
+                      }}
                     />
                   );
                 }
