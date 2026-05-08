@@ -193,7 +193,7 @@ function calcResult(answers) {
   };
 }
 
-const KAKAO_REST_KEY = "8d0b83fa198b31cae5def051d09b626f";
+const KAKAO_REST_KEY = import.meta.env.VITE_KAKAO_REST_KEY;
 
 // ─── 컴포넌트들 ──────────────────────────────────────────────────────────────
 
@@ -257,6 +257,11 @@ function SelectOptions({ options, onSelect, selected, onReselect }) {
     onSelect(opt);
   };
 
+  const handleReselect = () => {
+    setIsReselecting(true);
+    if (onReselect) onReselect(); // App에 "이후 메시지 지워줘" 신호
+  };
+
   const showOptions = !selected || isReselecting;
 
   return (
@@ -264,7 +269,7 @@ function SelectOptions({ options, onSelect, selected, onReselect }) {
       {showOptions ? (
         options.map((opt) => (
           <button key={opt.label} onClick={() => handleSelect(opt)} style={{
-            padding: "11px 16px", borderRadius: 12, textAlign: "left",
+            padding: "14px 16px", borderRadius: 12, textAlign: "left", minHeight: 44,
             border: selected?.label === opt.label && !isReselecting ? "2px solid #FF6B6B" : "2px solid #f0f0f0",
             background: selected?.label === opt.label && !isReselecting ? "#FFF5F5" : "#fff",
             color: selected?.label === opt.label && !isReselecting ? "#FF6B6B" : "#333",
@@ -283,7 +288,7 @@ function SelectOptions({ options, onSelect, selected, onReselect }) {
           }}>
             {selected.label}
           </div>
-          <button onClick={() => setIsReselecting(true)} style={{
+          <button onClick={handleReselect} style={{
             padding: "9px 12px", borderRadius: 10, border: "1px solid #f0f0f0",
             background: "#fff", color: "#999", cursor: "pointer",
             fontSize: 12, fontFamily: "inherit", whiteSpace: "nowrap"
@@ -348,6 +353,33 @@ function MultiSelectOptions({ options, onConfirm }) {
       )}
     </div>
   );
+}
+
+// ─── 카카오 장소 검색 ─────────────────────────────────────────────────────────
+// ─── 카카오 Directions API로 거리 계산 ────────────────────────────────────────
+async function getDistanceKm(originX, originY, destX, destY) {
+  try {
+    const res = await fetch(
+      `https://apis-navi.kakaomobility.com/v1/directions?origin=${originX},${originY}&destination=${destX},${destY}&summary=true`,
+      { headers: { Authorization: `KakaoAK ${KAKAO_REST_KEY}` } }
+    );
+    const data = await res.json();
+    const meters = data.routes?.[0]?.summary?.distance;
+    return meters ? Math.round(meters / 100) / 10 : null; // km 소수점 1자리
+  } catch {
+    return null;
+  }
+}
+
+async function getUserLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ x: pos.coords.longitude, y: pos.coords.latitude }),
+      () => resolve(null),
+      { timeout: 5000 }
+    );
+  });
 }
 
 // ─── 카카오 장소 검색 ─────────────────────────────────────────────────────────
@@ -422,6 +454,7 @@ function VenueSearch({ onSelect }) {
   const [confirmed, setConfirmed] = useState(false);
   const [suggestions, setSuggestions] = useState([]); // 자동완성 목록
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [autoDistanceResult, setAutoDistanceResult] = useState(null);
 
   const searchPlace = async () => {
     if (!query.trim()) return;
@@ -432,16 +465,39 @@ function VenueSearch({ onSelect }) {
   };
 
   const selectPlace = async (place) => {
-    setSelectedPlace(place);
-    setStep("meal");
-    setMealLoading(true);
+  setSelectedPlace(place);
+  setStep("meal");
+  setMealLoading(true);
+
+  // 거리 자동계산 시도
+  const userLoc = await getUserLocation();
+  if (userLoc && place.x && place.y) {
+    const km = await getDistanceKm(userLoc.x, userLoc.y, place.x, place.y);
+    if (km !== null) {
+      // km → distance value 자동 매핑
+      const autoDistance =
+        km < 10  ? { label: `🚶 ${km}km (자동계산)`, value: 0 } :
+        km < 20  ? { label: `🚌 ${km}km (자동계산)`, value: -1 } :
+        km < 50  ? { label: `🚗 ${km}km (자동계산)`, value: -2 } :
+                   { label: `✈️ ${km}km (자동계산)`, value: -4 };
+      setAutoDistanceResult(autoDistance);
+    }
+  }
     const dbData = await searchMealCostFromDB(place.place_name);
     if (dbData && Array.isArray(dbData)) {
-      if (dbData.length === 1) {
-        setMealInfo({ ...dbData[0], source: "db" });
-      } else {
-        setMealInfo({ source: "db_multi", list: dbData });
-      }
+    // 평균 식대 계산 (만 원 단위 반올림)
+    const costs = dbData.map(d => d.meal_cost).filter(Boolean);
+    const avg = costs.length
+      ? Math.round(costs.reduce((s, c) => s + c, 0) / costs.length / 10000) * 10000
+      : null;
+    setMealInfo({
+      source: "db",
+      meal_cost: avg,
+      grade: dbData[0]?.grade,
+      naver_map_url: dbData[0]?.naver_map_url,
+      tmap_url: dbData[0]?.tmap_url,
+      count: costs.length,
+    });
       setMealLoading(false);
       return;
     }
@@ -972,6 +1028,7 @@ export default function App() {
   const [isDone, setIsDone] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [result, setResult] = useState(null);
+  const [isDark, setIsDark] = useState(false);
   const bottomRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -1072,49 +1129,62 @@ export default function App() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&display=swap');
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; background: #f2f3f7; font-family: 'Pretendard', -apple-system, sans-serif; }
-        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes bounce { 0%,80%,100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        button { font-family: 'Pretendard', -apple-system, sans-serif; }
-        input { font-family: 'Pretendard', -apple-system, sans-serif; }
-        ::-webkit-scrollbar { display: none; }
-      `}</style>
+  @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&display=swap');
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; font-family: 'Pretendard', -apple-system, sans-serif; }
+  @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes bounce { 0%,80%,100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  button { font-family: 'Pretendard', -apple-system, sans-serif; }
+  input { font-family: 'Pretendard', -apple-system, sans-serif; }
+  ::-webkit-scrollbar { display: none; }
 
-      <div style={{
-        minHeight: "100vh", display: "flex", justifyContent: "center",
-        background: "#f2f3f7"
-      }}>
-        <div style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column" }}>
+  .app-root { --bg: #f2f3f7; --surface: #ffffff; --surface2: #f8f8f8; --border: #f0f0f0;
+    --text: #111111; --text2: #666666; --text3: #aaaaaa; --input-bg: #ffffff; }
+  .app-root.dark { --bg: #0f0f0f; --surface: #1a1a1a; --surface2: #222222; --border: #2a2a2a;
+    --text: #f0f0f0; --text2: #aaaaaa; --text3: #555555; --input-bg: #222222; }
+`}</style>
 
-          {/* 헤더 */}
-          <div style={{
-            background: "#fff", padding: "14px 20px",
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            borderBottom: "1px solid #f0f0f0", position: "sticky", top: 0, zIndex: 10,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: "50%",
-                background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
-                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18
-              }}>💒</div>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>얼마 내야 해?</div>
-                <div style={{ fontSize: 11, color: "#22C55E", fontWeight: 600 }}>● 온라인</div>
-              </div>
-            </div>
-            {isDone && (
-              <button onClick={retry} style={{
-                padding: "7px 14px", borderRadius: 100, border: "none",
-                background: "#f5f5f5", color: "#666", cursor: "pointer",
-                fontSize: 12, fontWeight: 600, fontFamily: "inherit"
-              }}>처음으로</button>
-            )}
-          </div>
+<div className={`app-root${isDark ? " dark" : ""}`} style={{
+  minHeight: "100vh", display: "flex", justifyContent: "center",
+  background: "var(--bg)", transition: "background 0.3s"
+}}>
+  <div style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column" }}>
+
+    {/* 헤더 */}
+    <div style={{
+      background: "var(--surface)", padding: "14px 20px",
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 10,
+      boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: "50%",
+          background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18
+        }}>💒</div>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>얼마 내야 해?</div>
+          <div style={{ fontSize: 11, color: "#22C55E", fontWeight: 600 }}>● 온라인</div>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        {/* 다크모드 토글 */}
+        <button onClick={() => setIsDark(d => !d)} style={{
+          padding: "7px 12px", borderRadius: 100, border: "none",
+          background: "var(--surface2)", color: "var(--text2)",
+          cursor: "pointer", fontSize: 14, fontFamily: "inherit"
+        }}>{isDark ? "☀️" : "🌙"}</button>
+        {isDone && (
+          <button onClick={retry} style={{
+            padding: "7px 14px", borderRadius: 100, border: "none",
+            background: "var(--surface2)", color: "var(--text2)", cursor: "pointer",
+            fontSize: 12, fontWeight: 600, fontFamily: "inherit"
+          }}>처음으로</button>
+        )}
+      </div>
+    </div>
 
           {/* 인트로 배너 */}
           {/* 인트로 배너 - 제거됨 */}
@@ -1141,10 +1211,8 @@ export default function App() {
           {!started && (
             <div style={{ padding: "24px 16px", animation: "fadeSlideIn 0.5s ease" }}>
               <div style={{ textAlign: "center", marginBottom: 24 }}>
-                  <div style={{ fontSize: 64, marginBottom: 12 }}>💒</div>
-
-                <h1 style={{ fontSize: 28, fontWeight: 900, color: "#111", margin: "0 0 6px", fontFamily: "inherit" }}>얼마 내야 해?</h1>
-                <p style={{ fontSize: 15, color: "#888", margin: 0 }}>AI 축의금 계산기</p>
+                 <div style={{ fontSize: 64, marginBottom: 20 }}>💒</div>
+                  <h1 style={{ fontSize: 28, fontWeight: 900, color: "#111", margin: "0 0 6px", fontFamily: "inherit" }}>얼마 내야 해?</h1><p style={{ fontSize: 15, color: "#888", margin: 0 }}>AI 축의금 계산기</p>
               </div>
               <div style={{ background: "linear-gradient(135deg, #FF6B6B, #FF8E53)", borderRadius: 14, padding: "14px 16px", marginBottom: 12 }}>
                 <p style={{ fontSize: 16, fontWeight: 800, color: "#fff", margin: 0, lineHeight: 1.4 }}>💬 축의금, 이걸로 정하면<br />욕 안 먹습니다.</p>
@@ -1201,7 +1269,23 @@ export default function App() {
                       key={msg.id}
                       options={step.options}
                       selected={msg.selected}
-                      onSelect={(opt) => !msg.selected && handleAnswer(msg.step, opt)}
+                      onSelect={(opt) => handleAnswer(msg.step, opt)}
+                      onReselect={() => {
+                        // 이 step 이후의 메시지 전부 제거 + answers 리셋
+                        setMessages(prev => {
+                          const idx = prev.findIndex(m => m.id === msg.id);
+                          return prev.slice(0, idx + 1).map(m =>
+                            m.id === msg.id ? { ...m, selected: null } : m
+                          );
+                        });
+                        setAnswers(prev => {
+                          const newA = { ...prev };
+                          CHAT_FLOW.slice(msg.step).forEach(q => delete newA[q.id]);
+                          return newA;
+                        });
+                        setIsDone(false);
+                        setResult(null);
+                      }}
                     />
                   );
                 }
