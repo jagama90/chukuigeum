@@ -2091,6 +2091,20 @@ export default function App() {
 @keyframes popIn { 0% { opacity: 0; transform: scale(0.7); } 70% { transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes staggerIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes floatSoft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes popInSoft {
+  0% { opacity: 0; transform: translateY(14px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 8px 24px rgba(255,107,107,0.08); }
+  50% { box-shadow: 0 12px 34px rgba(255,107,107,0.16); }
+}
   button { font-family: 'Pretendard', -apple-system, sans-serif; }
   input { font-family: 'Pretendard', -apple-system, sans-serif; }
   ::-webkit-scrollbar { display: none; }
@@ -2194,7 +2208,8 @@ export default function App() {
                   color: "#FF6B6B",
                   fontSize: 12,
                   fontWeight: 800,
-                  marginBottom: 14
+                  marginBottom: 14,
+                  animation: "floatSoft 3s ease-in-out infinite"
                 }}>
                   💬 축의금, 이걸로 정하면 욕 안 먹습니다
                 </div>
@@ -2202,7 +2217,8 @@ export default function App() {
                 <div style={{
                   fontSize: 58,
                   lineHeight: 1,
-                  marginBottom: 12
+                  marginBottom: 12,
+                  animation: "floatSoft 2.6s ease-in-out infinite"
                 }}>
                   💒
                 </div>
@@ -2237,7 +2253,8 @@ export default function App() {
                 marginBottom: 20,
                 boxShadow: "0 8px 24px rgba(0,0,0,0.05)",
                 border: "1px solid #f3f3f3",
-                textAlign: "center"
+                textAlign: "center",
+                animation: "popInSoft 0.5s ease both, glowPulse 3.5s ease-in-out infinite"
               }}>
                 <div style={{
                   fontSize: 15,
@@ -2257,47 +2274,7 @@ export default function App() {
                   가장 무난한 기준으로 계산합니다
                 </div>
               </div>
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 10,
-                margin: "18px 0 24px"
-              }}>
-                {[
-                  { icon: "🎯", label: "친밀도" },
-                  { icon: "🏛", label: "예식장" },
-                  { icon: "📍", label: "거리" },
-                  { icon: "💬", label: "공유" },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    style={{
-                      background: "rgba(255,255,255,0.7)",
-                      border: "1px solid rgba(255,255,255,0.9)",
-                      borderRadius: 16,
-                      padding: "14px 12px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      backdropFilter: "blur(8px)"
-                    }}
-                  >
-                    <div style={{
-                      fontSize: 20
-                    }}>
-                      {item.icon}
-                    </div>
-
-                    <div style={{
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: "#333"
-                    }}>
-                      {item.label}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              
               
               <div style={{ animation: "slideUp 0.5s ease 0.7s both" }}>
                 <ControversyBubbles />
@@ -2313,7 +2290,7 @@ export default function App() {
                   onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 10px 28px rgba(255,107,107,0.45)"; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(255,107,107,0.35)"; }}
                 >
-                  계산 시작하기 →
+                  지금 30초만에 확인하기 →
                 </button>
                 <p style={{ textAlign: "center", fontSize: 11, color: "#ccc", marginTop: 12 }}>질문 11개 · 약 2분 소요 · 완전 무료</p>
               </div>
