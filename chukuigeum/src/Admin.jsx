@@ -19,6 +19,26 @@ function formatDate(d) {
 
 // ─── 컴포넌트 ────────────────────────────────────────────────────────────────
 
+function MiniBarChart({ data, colorFn }) {
+  const max = Math.max(...data.map(d => d.count), 1);
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 60 }}>
+      {data.map((d, i) => (
+        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+          <div style={{ fontSize: 9, color: "#bbb", fontWeight: 600 }}>{d.count > 0 ? d.count : ""}</div>
+          <div style={{
+            width: "100%", borderRadius: "4px 4px 0 0",
+            background: colorFn ? colorFn(d) : "linear-gradient(180deg, #FF6B6B, #FF8E53)",
+            height: `${Math.max((d.count / max) * 44, d.count > 0 ? 4 : 0)}px`,
+            transition: "height 0.6s ease",
+          }} />
+          <div style={{ fontSize: 9, color: "#aaa", textAlign: "center", lineHeight: 1.2 }}>{d.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function StatCard({ emoji, label, value, sub, color }) {
   return (
     <div style={{
@@ -56,7 +76,8 @@ export default function Admin() {
   const [pw, setPw] = useState("");
   const [pwError, setPwError] = useState(false);
 
-  const [tab, setTab] = useState("reports"); // reports | calculations | stats
+  const [tab, setTab] = useState("reports"); // reports | calculations | charts
+  const [chartData, setChartData] = useState({ amountDist: [], scoreDist: [] });
   const [reports, setReports] = useState([]);
   const [calculations, setCalculations] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -87,6 +108,44 @@ export default function Admin() {
     setReports(reps || []);
     setCalculations(calcs || []);
 
+    const autoApproveMatches = async (reports) => {
+    // 같은 venue_name으로 pending 제보가 2개 이상이면 자동 승인
+    const pending = reports.filter(r => r.status === "pending");
+    const nameCount = {};
+    pending.forEach(r => {
+      const key = r.venue_name?.trim().toLowerCase();
+      if (!key) return;
+      nameCount[key] = (nameCount[key] || []);
+      nameCount[key].push(r);
+    });
+
+    for (const [, group] of Object.entries(nameCount)) {
+      if (group.length >= 2) {
+        // 평균 식대로 자동 승인
+        const avgCost = Math.round(
+          group.reduce((s, r) => s + (r.meal_cost || 0), 0) / group.length / 10000
+        ) * 10000;
+
+        for (const report of group) {
+          await supabase.from("venue_reports").update({ status: "approved" }).eq("id", report.id);
+
+          const { data: existing } = await supabase
+            .from("venues").select("id").eq("source_report_id", report.id).single();
+          if (!existing) {
+            await supabase.from("venues").insert([{
+              name: report.venue_name,
+              address: report.address,
+              meal_cost: avgCost || report.meal_cost,
+              source_report_id: report.id,
+            }]);
+          }
+        }
+        alert(`✅ "${group[0].venue_name}" — ${group.length}개 제보 일치로 자동 승인됐어요! (평균 식대: ${avgCost?.toLocaleString()}원)`);
+      }
+    }
+    await loadAll();
+  };
+
     // 통계 계산
     const today = new Date().toDateString();
     const todayCalcs = (calcs || []).filter(c => new Date(c.created_at).toDateString() === today);
@@ -103,6 +162,37 @@ export default function Admin() {
       avgScore,
       topAmount: topAmount ? parseInt(topAmount) : 0,
     });
+
+    // 차트 데이터
+    const amountLabels = [
+      { key: 30000, label: "3만" },
+      { key: 50000, label: "5만" },
+      { key: 70000, label: "7만" },
+      { key: 100000, label: "10만" },
+      { key: 150000, label: "15만" },
+      { key: 200000, label: "20만" },
+      { key: 300000, label: "30만" },
+      { key: 500000, label: "50만" },
+      { key: 1000000, label: "100만" },
+    ];
+    const amountDist = amountLabels.map(({ key, label }) => ({
+      label,
+      count: (calcs || []).filter(c => c.amount === key).length,
+    }));
+
+    const scoreBuckets = [
+      { label: "0~20", min: 0, max: 20 },
+      { label: "21~40", min: 21, max: 40 },
+      { label: "41~60", min: 41, max: 60 },
+      { label: "61~80", min: 61, max: 80 },
+      { label: "81~100", min: 81, max: 100 },
+    ];
+    const scoreDist = scoreBuckets.map(({ label, min, max }) => ({
+      label,
+      count: (calcs || []).filter(c => c.score >= min && c.score <= max).length,
+    }));
+
+    setChartData({ amountDist, scoreDist });
     setLoading(false);
   };
 
@@ -212,10 +302,15 @@ export default function Admin() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button onClick={loadAll} style={{
-            padding: "6px 14px", borderRadius: 8, border: "1px solid #f0f0f0",
-            background: "#fff", cursor: "pointer", fontSize: 12, color: "#666",
-            fontFamily: "inherit", fontWeight: 600
-          }}>🔄 새로고침</button>
+          padding: "6px 14px", borderRadius: 8, border: "1px solid #f0f0f0",
+          background: "#fff", cursor: "pointer", fontSize: 12, color: "#666",
+          fontFamily: "inherit", fontWeight: 600
+        }}>🔄 새로고침</button>
+        <button onClick={() => autoApproveMatches(reports)} style={{
+          padding: "6px 14px", borderRadius: 8, border: "none",
+          background: "#E8F5E9", cursor: "pointer", fontSize: 12, color: "#22C55E",
+          fontFamily: "inherit", fontWeight: 700
+        }}>⚡ 자동승인 검사</button>
           <button onClick={() => setAuthed(false)} style={{
             padding: "6px 14px", borderRadius: 8, border: "none",
             background: "#f5f5f5", cursor: "pointer", fontSize: 12, color: "#888",
@@ -241,6 +336,7 @@ export default function Admin() {
           {[
             { key: "reports", label: "📮 제보 관리" },
             { key: "calculations", label: "🧮 계산 히스토리" },
+            { key: "charts", label: "📊 통계 차트" },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} style={{
               padding: "9px 18px", borderRadius: 10, border: "none",
@@ -373,6 +469,31 @@ export default function Admin() {
                 
               </div>
             )}
+          </div>
+        )}
+
+        {/* 통계 차트 탭 */}
+        {!loading && tab === "charts" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{
+              background: "#fff", borderRadius: 16, padding: "20px",
+              border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#111", marginBottom: 4 }}>💰 추천 금액 분포</div>
+              <div style={{ fontSize: 11, color: "#aaa", marginBottom: 16 }}>최근 200건 기준</div>
+              <MiniBarChart data={chartData.amountDist} />
+            </div>
+            <div style={{
+              background: "#fff", borderRadius: 16, padding: "20px",
+              border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#111", marginBottom: 4 }}>🎯 인연 점수 분포</div>
+              <div style={{ fontSize: 11, color: "#aaa", marginBottom: 16 }}>최근 200건 기준</div>
+              <MiniBarChart
+                data={chartData.scoreDist}
+                colorFn={d => `linear-gradient(180deg, #667eea, #764ba2)`}
+              />
+            </div>
           </div>
         )}
 

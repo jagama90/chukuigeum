@@ -1675,12 +1675,14 @@ function ResultCard({ result, onRetry, onReport }) {
     ? `https://weddingfee.vercel.app?token=${shareToken}`
     : `https://weddingfee.vercel.app`;
 
+  const ogImageUrl = `https://weddingfee.vercel.app/api/og?amount=${encodeURIComponent(formatAmount(tier.amount))}&title=${encodeURIComponent(tier.title)}&score=${total}`;
+
   window.Kakao.Share.sendDefault({
       objectType: "feed",
       content: {
         title: `추천 축의금은 ${formatAmount(tier.amount)}`,
         description: `"${tier.title}"\n축의금, 이걸로 정하면 욕 안 먹습니다!`,
-        imageUrl: "https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_medium.png",
+        imageUrl: ogImageUrl,
         link: {
           mobileWebUrl: url,
           webUrl: url,
