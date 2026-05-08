@@ -492,7 +492,7 @@ function VenueSearch({ onSelect }) {
         placeholder="예) 신라호텔, 롯데호텔..."
         style={{
           flex: 1, padding: "12px 14px", borderRadius: 12,
-          border: "2px solid #f0f0f0", fontSize: 14,
+          border: "2px solid #f0f0f0", fontSize: 16,
           fontFamily: "inherit", outline: "none", background: "#fff"
         }}
       />
@@ -890,9 +890,9 @@ function ResultCard({ result, onRetry, onReport }) {
       </div>
 
       {/* 공유 버튼 */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 10, flexDirection: "column" }}>
         <button onClick={handleCopy} style={{
-          flex: 1, padding: "13px", borderRadius: 14, border: "2px solid #f0f0f0",
+          width: "100%", padding: "13px", borderRadius: 14, border: "2px solid #f0f0f0",
           background: "#fff", color: "#333", cursor: "pointer",
           fontSize: 14, fontWeight: 700, fontFamily: "inherit"
         }}>
