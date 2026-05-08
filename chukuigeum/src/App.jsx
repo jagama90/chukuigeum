@@ -225,9 +225,7 @@ function calcMaxIntimacy() {
 const MAX_INTIMACY = calcMaxIntimacy();
 
 const MAX_BASE = Math.max(...CHAT_FLOW.find(q => q.id === BASE_ID).options.map(o => o.value));
-// → 20 (가족)
-const MAX_RAW_SCORE = MAX_BASE + MAX_BASE * 1.0;
-// → 40 (거리 페널티는 제외, 보정항목이라서)
+const MAX_RAW_SCORE = MAX_BASE + MAX_BASE * 1.0; // → 40
 
 function calcResult(answers) {
   const breakdown = [];

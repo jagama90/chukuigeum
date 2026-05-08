@@ -11,7 +11,8 @@ function formatAmount(n) {
 }
 function formatDate(d) {
   if (!d) return "-";
-  return new Date(d).toLocaleDateString("ko-KR", {
+  return new Date(d).toLocaleString("ko-KR", {
+    timeZone: "Asia/Seoul",
     month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
   });
 }
