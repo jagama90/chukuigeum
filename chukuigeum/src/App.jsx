@@ -730,7 +730,7 @@ function VenueSearch({ onSelect, onReport }) {
     setConfirmed(true);
     onSelect({
       name: "모름",
-      label: "아직 몰라요 🤷",
+      label: "아직 몰라요🤷",
       avgMeal: null,
       kakaoPlace: null,
       autoDistance: null,
