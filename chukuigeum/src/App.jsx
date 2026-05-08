@@ -1120,8 +1120,8 @@ function ShareImageCard({ result, cardRef }) {
           background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
           display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16
         }}>💒</div>
-        <div style={{ fontSize: 13, fontWeight: 800, color: "#111" }}>얼마 내야 해?</div>
-        <div style={{ marginLeft: "auto", fontSize: 11, color: "#aaa" }}>chukuigeum.vercel.app</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "#111" }}>착한축의금 알아보기</div>
+        <div style={{ marginLeft: "auto", fontSize: 11, color: "#aaa" }}>weddingfee.vercel.app</div>
       </div>
 
       {/* 메인 금액 */}
@@ -1183,7 +1183,7 @@ function ShareImageCard({ result, cardRef }) {
       {/* 하단 */}
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 11, color: "#bbb" }}>나도 계산하기 →</div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#FF6B6B" }}>chukuigeum.vercel.app</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#FF6B6B" }}>weddingfee.vercel.app</div>
       </div>
     </div>
   );
@@ -1365,8 +1365,8 @@ function ResultCard({ result, onRetry, onReport }) {
 
   const handleCopy = () => {
     const url = shareToken
-      ? `https://chukuigeum.vercel.app?token=${shareToken}`
-      : `https://chukuigeum.vercel.app`;
+      ? `https://weddingfee.vercel.app?token=${shareToken}`
+      : `https://weddingfee.vercel.app`;
     navigator.clipboard.writeText(
       `💒 축의금 계산 결과: ${formatAmount(tier.amount)}\n"${tier.title}"\n\n축의금, 이걸로 정하면 욕 안 먹습니다!\n나도 계산하기 → ${url}`
     ).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
@@ -1385,8 +1385,8 @@ function ResultCard({ result, onRetry, onReport }) {
   }
 
   const url = shareToken
-    ? `https://chukuigeum.vercel.app?token=${shareToken}`
-    : `https://chukuigeum.vercel.app`;
+    ? `https://weddingfee.vercel.app?token=${shareToken}`
+    : `https://weddingfee.vercel.app`;
 
   window.Kakao.Share.sendDefault({
       objectType: "feed",
