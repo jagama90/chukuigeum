@@ -2178,20 +2178,83 @@ export default function App() {
                   {/* 인트로 화면 */}
           {!loadingSharedResult && !started && (
             <div style={{ padding: "24px 16px" }}>
-              <div style={{ textAlign: "center", marginBottom: 24, animation: "popIn 0.6s ease forwards" }}>
-                <div style={{ fontSize: 64, marginBottom: 20 }}>💒</div>
-                <h1 style={{ fontSize: 28, fontWeight: 900, color: "#111", margin: "0 0 6px", fontFamily: "inherit" }}>착한축의금</h1>
-                <p style={{ fontSize: 15, color: "#888", margin: 0 }}>AI 축의금 계산기</p>
-              </div>
-              <div style={{ animation: "slideUp 0.5s ease 0.2s both" }}>
+
+              <div style={{
+                textAlign: "center",
+                marginBottom: 22,
+                paddingTop: 4
+              }}>
                 <div style={{
-                  background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
-                  borderRadius: 14, padding: "14px 16px", marginBottom: 20
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 12px",
+                  borderRadius: 999,
+                  background: "#FFF5F5",
+                  color: "#FF6B6B",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  marginBottom: 14
                 }}>
-                  <p style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", margin: "8px 0 0", lineHeight: 1.6 }}>
-                    관계의 깊이 + 평소 교류 빈도로<br />
-                    감정이 아니라 기준으로 계산해드려요.
-                  </p>
+                  💬 축의금, 이걸로 정하면 욕 안 먹습니다
+                </div>
+
+                <div style={{
+                  fontSize: 58,
+                  lineHeight: 1,
+                  marginBottom: 12
+                }}>
+                  💒
+                </div>
+
+                <h1 style={{
+                  fontSize: 34,
+                  fontWeight: 900,
+                  color: "#111",
+                  margin: "0 0 8px",
+                  fontFamily: "inherit",
+                  letterSpacing: "-1.2px",
+                  lineHeight: 1.15
+                }}>
+                  얼마 내야 해?
+                </h1>
+
+                <p style={{
+                  fontSize: 16,
+                  color: "#777",
+                  margin: 0,
+                  lineHeight: 1.6
+                }}>
+                  5만원은 애매하고<br />
+                  10만원은 부담스러울 때
+                </p>
+              </div>
+
+              <div style={{
+                background: "#fff",
+                borderRadius: 20,
+                padding: "18px 18px",
+                marginBottom: 20,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.05)",
+                border: "1px solid #f3f3f3",
+                textAlign: "center"
+              }}>
+                <div style={{
+                  fontSize: 15,
+                  fontWeight: 900,
+                  color: "#111",
+                  marginBottom: 8
+                }}>
+                  AI가 가장 현실적인 축의금을 추천해드려요
+                </div>
+
+                <div style={{
+                  fontSize: 13,
+                  color: "#666",
+                  lineHeight: 1.7
+                }}>
+                  친밀도 · 예식장 등급 · 거리 · 식사 여부까지<br />
+                  가장 무난한 기준으로 계산합니다
                 </div>
               </div>
               {[
@@ -2210,19 +2273,7 @@ export default function App() {
                   <span style={{ fontSize: 14, color: "#444", fontWeight: 500 }}>{item.text}</span>
                 </div>
               ))}
-              <div style={{
-                background: "#f8f9ff", border: "1px solid #e0e8ff", borderRadius: 14,
-                padding: "12px 16px", marginBottom: 20, marginTop: 12,
-                display: "flex", alignItems: "center", gap: 10,
-                animation: "staggerIn 0.4s ease 0.65s both",
-              }}>
-                <span style={{ fontSize: 24 }}>💍</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 10, color: "#aaa" }}>SPONSORED</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#333" }}>웨딩 준비 중이신가요?</div>
-                  <div style={{ fontSize: 11, color: "#888" }}>제휴 웨딩플래너 무료 상담 →</div>
-                </div>
-              </div>
+              
               <div style={{ animation: "slideUp 0.5s ease 0.7s both" }}>
                 <ControversyBubbles />
                 <MonthlyTop3Card />
@@ -2240,6 +2291,19 @@ export default function App() {
                   계산 시작하기 →
                 </button>
                 <p style={{ textAlign: "center", fontSize: 11, color: "#ccc", marginTop: 12 }}>질문 11개 · 약 2분 소요 · 완전 무료</p>
+              </div>
+              <div style={{
+                background: "#f8f9ff", border: "1px solid #e0e8ff", borderRadius: 14,
+                padding: "12px 16px", marginBottom: 20, marginTop: 12,
+                display: "flex", alignItems: "center", gap: 10,
+                animation: "staggerIn 0.4s ease 0.65s both",
+              }}>
+                <span style={{ fontSize: 24 }}>💍</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 10, color: "#aaa" }}>SPONSORED</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#333" }}>웨딩 준비 중이신가요?</div>
+                  <div style={{ fontSize: 11, color: "#888" }}>제휴 웨딩플래너 무료 상담 →</div>
+                </div>
               </div>
             </div>
           )}
