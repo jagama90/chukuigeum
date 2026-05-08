@@ -272,8 +272,12 @@ function calcResult(answers) {
     ? Math.max(intimacySum / MAX_INTIMACY, -1)
     : 0;
   const rawScore = baseScore + baseScore * intimacyCoeff;
-  const finalScore = Math.round(
-    Math.min((rawScore / MAX_RAW_SCORE) * 100, 100) + distanceScore
+  const finalScore = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(Math.min((rawScore / MAX_RAW_SCORE) * 100, 100) + distanceScore)
+    )
   );
   // 거리 페널티는 정규화 후 별도 적용 (100점 초과 방지)
 
@@ -1784,13 +1788,22 @@ function ResultCard({ result, onRetry, onReport }) {
             </button>
           )}
         </div>
-        {breakdownOpen && result.breakdown?.length > 0 && (
+        {showBreakdown && result.breakdown?.length > 0 && (
+        <div style={{
+          borderTop: "1px solid #f0f0f0",
+          marginTop: 14,
+          paddingTop: 14
+        }}>
           <div style={{
-            borderTop: "1px solid #f5f5f5", paddingTop: 10, marginTop: 10,
-            display: "flex", flexDirection: "column", gap: 6,
-            animation: "fadeSlideIn 0.2s ease"
+            fontSize: 11,
+            color: "#aaa",
+            lineHeight: 1.5,
+            marginBottom: 10
           }}>
-            {result.breakdown.map((item, i) => (
+            각 항목은 최종 점수에 반영된 관계 신호예요. 최종 점수는 관계 유형과 친밀도를 보정해 계산돼요.
+          </div>
+
+          {result.breakdown.map((item, i) => (
               <div key={i} style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
                 animation: `staggerIn 0.3s ease ${i * 0.05}s both`
@@ -1804,13 +1817,6 @@ function ResultCard({ result, onRetry, onReport }) {
                 </span>
               </div>
             ))}
-            <div style={{
-              borderTop: "1px solid #f5f5f5", paddingTop: 8, marginTop: 2,
-              display: "flex", justifyContent: "space-between"
-            }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#444" }}>합계</span>
-              <span style={{ fontSize: 12, fontWeight: 900, color: "#111" }}>{total}점</span>
-            </div>
           </div>
         )}
       </div>
