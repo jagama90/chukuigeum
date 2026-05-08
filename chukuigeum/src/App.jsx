@@ -933,42 +933,71 @@ function VenueSearch({ onSelect, onReport }) {
     <div style={{ padding: "4px 0 16px 46px", animation: "fadeSlideIn 0.3s ease" }}>
       {(step === "input" || step === "searching") && (
   <div style={{ position: "relative", marginBottom: 12 }}>
-    <div style={{ display: "flex", gap: 8 }}>
-      <input
-        type="text" value={query}
-        onChange={async (e) => {
-          const val = e.target.value;
-          setQuery(val);
-          if (val.length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
-          const results = await searchKakaoPlace(val);
-          setSuggestions(results.slice(0, 10));
-          setShowSuggestions(true);
-        }}
-        onKeyDown={e => e.key === "Enter" && searchPlace()}
-        placeholder="예) 신라호텔, 롯데호텔..."
-        style={{
-          flex: 1, padding: "12px 14px", borderRadius: 12,
-          border: "2px solid #f0f0f0", fontSize: 16,
-          fontFamily: "inherit", outline: "none", background: "#fff"
-        }}
-      />
-      <button onClick={searchPlace} disabled={step === "searching"} style={{
-        padding: "12px 16px", borderRadius: 12, border: "none",
-        background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
-        color: "#fff", cursor: "pointer", fontSize: 14,
-        fontWeight: 700, fontFamily: "inherit", whiteSpace: "nowrap"
-      }}>
-        {step === "searching" ? "🔍..." : "검색"}
-      </button>
-    </div>
+   <div style={{
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) 68px",
+    gap: 8,
+    width: "100%",
+    boxSizing: "border-box"
+  }}>
+    <input
+      type="text" value={query}
+      onChange={async (e) => {
+        const val = e.target.value;
+        setQuery(val);
+        if (val.length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
+        const results = await searchKakaoPlace(val);
+        setSuggestions(results.slice(0, 10));
+        setShowSuggestions(true);
+      }}
+      onKeyDown={e => e.key === "Enter" && searchPlace()}
+      placeholder="예) 신라호텔, 롯데호텔..."
+      style={{
+        width: "100%",
+        minWidth: 0,
+        boxSizing: "border-box",
+        padding: "12px 14px",
+        borderRadius: 12,
+        border: "2px solid #f0f0f0",
+        fontSize: 16,
+        fontFamily: "inherit",
+        outline: "none",
+        background: "#fff"
+      }}
+    />
+    <button onClick={searchPlace} disabled={step === "searching"} style={{
+      width: "68px",
+      minWidth: 0,
+      padding: "12px 0",
+      borderRadius: 12,
+      border: "none",
+      background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
+      color: "#fff",
+      cursor: "pointer",
+      fontSize: 14,
+      fontWeight: 700,
+      fontFamily: "inherit",
+      whiteSpace: "nowrap"
+    }}>
+      {step === "searching" ? "🔍" : "검색"}
+    </button>
+  </div>
 
     {showSuggestions && suggestions.length > 0 && (
       <div style={{
-        position: "absolute", top: "100%", left: 0, right: 0,
-        background: "#fff", borderRadius: 12,
+        position: "absolute",
+        top: "100%",
+        left: 0,
+        right: 0,
+        width: "100%",
+        boxSizing: "border-box",
+        background: "#fff",
+        borderRadius: 12,
         border: "1.5px solid #f0f0f0",
         boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        overflow: "hidden", zIndex: 100, marginTop: 6
+        overflow: "hidden",
+        zIndex: 100,
+        marginTop: 6
       }}>
         {suggestions.map((p, i) => (
           <button key={i} onClick={() => {
@@ -1003,24 +1032,53 @@ function VenueSearch({ onSelect, onReport }) {
       {step === "place" && (
   <div>
     {/* 검색창 다시 보여주기 */}
-    <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "minmax(0, 1fr) 68px",
+      gap: 8,
+      width: "100%",
+      marginBottom: 8,
+      boxSizing: "border-box"
+    }}>
       <input
-        type="text" value={query}
+        type="text"
+        value={query}
         onChange={e => setQuery(e.target.value)}
         onKeyDown={e => e.key === "Enter" && searchPlace()}
-        placeholder="예) 신라호텔, 롯데호텔..."
+        placeholder="다시 검색"
         style={{
-          flex: 1, padding: "12px 14px", borderRadius: 12,
-          border: "2px solid #f0f0f0", fontSize: 14,
-          fontFamily: "inherit", outline: "none", background: "#fff"
+          width: "100%",
+          minWidth: 0,
+          boxSizing: "border-box",
+          padding: "12px 14px",
+          borderRadius: 12,
+          border: "2px solid #f0f0f0",
+          fontSize: 14,
+          fontFamily: "inherit",
+          outline: "none",
+          background: "#fff"
         }}
       />
-      <button onClick={searchPlace} style={{
-        padding: "12px 16px", borderRadius: 12, border: "none",
-        background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
-        color: "#fff", cursor: "pointer", fontSize: 14,
-        fontWeight: 700, fontFamily: "inherit", whiteSpace: "nowrap"
-      }}>검색</button>
+
+      <button
+        onClick={searchPlace}
+        style={{
+          width: "68px",
+          minWidth: 0,
+          padding: "12px 0",
+          borderRadius: 12,
+          border: "none",
+          background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
+          color: "#fff",
+          cursor: "pointer",
+          fontSize: 14,
+          fontWeight: 700,
+          fontFamily: "inherit",
+          whiteSpace: "nowrap"
+        }}
+      >
+        검색
+      </button>
     </div>
 
     {/* 결과 리스트 — 세로로 */}
@@ -1916,9 +1974,19 @@ export default function App() {
   const [result, setResult] = useState(null);
   const [isDark, setIsDark] = useState(false);
   const bottomRef = useRef(null);
+  const resultRef = useRef(null);
 
   const scrollToBottom = () => {
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+  setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+  };
+
+  const scrollToResult = () => {
+    setTimeout(() => {
+      resultRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }, 150);
   };
 
   const addBotMessage = (text, delay = 800) => {
@@ -2052,7 +2120,7 @@ export default function App() {
         );
         setIsDone(true);
         setMessages(prev => [...prev, { type: "result", id: Date.now() }]);
-        scrollToBottom();
+        scrollToResult();
       }, 1000);
     } else {
       // 다음 질문
@@ -2217,8 +2285,7 @@ export default function App() {
                 <div style={{
                   fontSize: 58,
                   lineHeight: 1,
-                  marginBottom: 12,
-                  animation: "floatSoft 2.6s ease-in-out infinite"
+                  marginBottom: 12
                 }}>
                   💒
                 </div>
@@ -2393,12 +2460,13 @@ export default function App() {
 
               if (msg.type === "result" && result) {
                 return (
-                  <ResultCard
-                    key={msg.id}
-                    result={result}
-                    onRetry={retry}
-                    onReport={() => setShowReport(true)}
-                  />
+                  <div key={msg.id} ref={resultRef}>
+                    <ResultCard
+                      result={result}
+                      onRetry={retry}
+                      onReport={() => setShowReport(true)}
+                    />
+                  </div>
                 );
               }
               return null;
