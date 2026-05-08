@@ -2435,541 +2435,541 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
     } catch {}
   };
 
-  return (
-    <div style={{ padding: "4px 0 16px 0", animation: "fadeSlideIn 0.4s ease" }}>
-      {/* 결과 카드 — 이미지 캡처 영역 */}
-      {/* 테마 선택 */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 8, justifyContent: "flex-end" }}>
-        {[
-          { key: "default", label: "🎨 기본" },
-          { key: "pastel", label: "🌸 파스텔" },
-          { key: "dark", label: "🌙 다크" },
-        ].map(t => (
-          <button key={t.key} onClick={() => setCardTheme(t.key)} style={{
-            padding: "5px 10px", borderRadius: 100,
-            border: cardTheme === t.key ? "2px solid #FF6B6B" : "2px solid #f0f0f0",
-            background: cardTheme === t.key ? "#FFF5F5" : "#fff",
-            color: cardTheme === "dark" ? "#bbb" : "#555",
-            cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit"
-          }}>{t.label}</button>
-        ))}
-      </div>
+  const [activeTab, setActiveTab] = useState("info"); // "info" | "share" | "tools"
 
+  return (
+    <div style={{ padding: "4px 0 24px 0", animation: "fadeSlideIn 0.4s ease" }}>
+
+      {/* ── 메인 결과 카드 ── */}
       <div ref={cardRef} style={{
-        background: cardTheme === "pastel"
-          ? `linear-gradient(135deg, ${tier.color}28, #fff9f9)`
-          : cardTheme === "dark"
-          ? `linear-gradient(135deg, #1a1a2e, #16213e)`
-          : `linear-gradient(135deg, ${tier.color}18, ${tier.color}06)`,
-        border: cardTheme === "dark" ? "2px solid #444" : `2px solid ${tier.color}30`,
-        borderRadius: 20, padding: "28px 20px 24px", textAlign: "center", marginBottom: 12,
-        animation: "fadeSlideIn 0.4s ease"
+        background: cardTheme === "dark"
+          ? "linear-gradient(160deg, #1a1a2e 0%, #16213e 100%)"
+          : cardTheme === "pastel"
+          ? `linear-gradient(160deg, ${tier.color}20 0%, #fff8f8 100%)`
+          : `linear-gradient(160deg, ${tier.color}14 0%, #ffffff 60%)`,
+        borderRadius: 24,
+        padding: "28px 20px 24px",
+        marginBottom: 4,
+        position: "relative",
+        overflow: "hidden",
+        boxShadow: `0 8px 32px ${tier.color}22`,
       }}>
-        {/* 연락 끊겼다 청첩장 특별 배너 */}
+        {/* 배경 장식 원 */}
+        <div style={{
+          position: "absolute", top: -40, right: -40,
+          width: 160, height: 160, borderRadius: "50%",
+          background: `${tier.color}10`, pointerEvents: "none"
+        }} />
+
+        {/* 연락 끊겼다 배너 */}
         {result.isGhosted && (
           <div style={{
-            background: "#FFF5F5", border: "1.5px solid #FFB3B3",
-            borderRadius: 10, padding: "8px 12px", marginBottom: 12,
+            background: "rgba(192,57,43,0.08)", border: "1px solid rgba(192,57,43,0.2)",
+            borderRadius: 10, padding: "7px 12px", marginBottom: 14,
             fontSize: 12, fontWeight: 700, color: "#C0392B", textAlign: "center"
           }}>
             🥲 연락 끊겼다 청첩장... 다들 공감해요
           </div>
         )}
 
-        {/* 이모지 — 크고 여백 넉넉히 */}
-        <div style={{ fontSize: 56, marginBottom: 16, animation: "popIn 0.5s ease 0.1s both", lineHeight: 1 }}>
+        {/* 테마 + 금액조정 — 우상단 */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div style={{ display: "flex", gap: 4 }}>
+            {[
+              { key: "default", label: "기본" },
+              { key: "pastel", label: "🌸" },
+              { key: "dark", label: "🌙" },
+            ].map(t => (
+              <button key={t.key} onClick={() => setCardTheme(t.key)} style={{
+                padding: "4px 8px", borderRadius: 100,
+                border: "none",
+                background: cardTheme === t.key
+                  ? (cardTheme === "dark" ? "rgba(255,255,255,0.15)" : `${tier.color}22`)
+                  : "transparent",
+                color: cardTheme === t.key
+                  ? (cardTheme === "dark" ? "#fff" : tier.color)
+                  : (cardTheme === "dark" ? "#666" : "#ccc"),
+                cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit"
+              }}>{t.label}</button>
+            ))}
+          </div>
+          {/* 금액 ▲▼ */}
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            {tierOffset !== 0 && (
+              <span style={{
+                fontSize: 10, color: tier.color, fontWeight: 700,
+                background: `${tier.color}15`, borderRadius: 100, padding: "2px 8px"
+              }}>
+                {tierOffset > 0 ? `+${tierOffset}` : tierOffset}티어
+              </span>
+            )}
+            <button onClick={() => setTierOffset(o => Math.max(-(RESULT_TIERS.findIndex(t => t.amount === result.tier.amount)), o - 1))} style={{
+              width: 26, height: 26, borderRadius: "50%",
+              border: "none",
+              background: cardTheme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
+              cursor: "pointer", fontSize: 12,
+              color: cardTheme === "dark" ? "#aaa" : "#888", fontFamily: "inherit"
+            }}>▼</button>
+            <button onClick={() => setTierOffset(o => Math.min(RESULT_TIERS.length - 1 - RESULT_TIERS.findIndex(t => t.amount === result.tier.amount), o + 1))} style={{
+              width: 26, height: 26, borderRadius: "50%",
+              border: "none",
+              background: cardTheme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
+              cursor: "pointer", fontSize: 12,
+              color: cardTheme === "dark" ? "#aaa" : "#888", fontFamily: "inherit"
+            }}>▲</button>
+          </div>
+        </div>
+
+        {/* 이모지 */}
+        <div style={{ fontSize: 52, lineHeight: 1, marginBottom: 12, animation: "popIn 0.5s ease 0.1s both" }}>
           {tier.emoji}
         </div>
 
-        {/* 추천 축의금 배지 */}
-        <div style={{
-          display: "inline-block",
-          background: `${tier.color}22`,
-          border: `1px solid ${tier.color}44`,
-          borderRadius: 100,
-          padding: "4px 14px",
-          fontSize: 11, fontWeight: 700, color: tier.color,
-          letterSpacing: 1, marginBottom: 14,
-          animation: "slideUp 0.4s ease 0.15s both"
-        }}>
-          추천 축의금
-        </div>
+        {/* 금액 */}
+        <AmountCountUp amount={tier.amount} color={cardTheme === "dark" ? "#fff" : tier.color} />
 
-        {/* 금액 카운트업 */}
-        <AmountCountUp amount={tier.amount} color={tier.color} />
-
-        {/* 금액 수동 조정 */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 8 }}>
-          <button onClick={() => setTierOffset(o => Math.max(-(RESULT_TIERS.findIndex(t => t.amount === result.tier.amount)), o - 1))} style={{
-            width: 32, height: 32, borderRadius: "50%", border: "2px solid #f0f0f0",
-            background: "#fff", cursor: "pointer", fontSize: 16, fontWeight: 700,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#aaa", fontFamily: "inherit"
-          }}>▼</button>
-          {tierOffset !== 0 && (
-            <span style={{ fontSize: 11, color: "#FF6B6B", fontWeight: 700 }}>
-              AI 추천에서 {tierOffset > 0 ? `+${tierOffset}` : tierOffset}티어 조정
-            </span>
-          )}
-          {tierOffset === 0 && (
-            <span style={{ fontSize: 11, color: "#bbb" }}>▲▼ 로 금액 직접 조정</span>
-          )}
-          <button onClick={() => setTierOffset(o => Math.min(RESULT_TIERS.length - 1 - RESULT_TIERS.findIndex(t => t.amount === result.tier.amount), o + 1))} style={{
-            width: 32, height: 32, borderRadius: "50%", border: "2px solid #f0f0f0",
-            background: "#fff", cursor: "pointer", fontSize: 16, fontWeight: 700,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#aaa", fontFamily: "inherit"
-          }}>▲</button>
-        </div>
-
-        {/* 타이틀 */}
-        <div style={{
-          fontSize: 16, fontWeight: 700, color: "#444", marginBottom: 8, marginTop: 4,
-          animation: "slideUp 0.4s ease 0.35s both"
-        }}>
-          {tier.title}
-        </div>
-
-        {/* 홀수 금액 가이드 */}
-        {[30000, 50000, 70000, 150000, 300000, 500000].includes(tier.amount) && (
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 4,
-            background: "#F0FDF4", border: "1px solid #BBF7D0",
-            borderRadius: 100, padding: "3px 10px",
-            fontSize: 11, fontWeight: 600, color: "#15803D",
-            marginBottom: 10, animation: "slideUp 0.4s ease 0.38s both"
+        {/* 타이틀 + 홀수 배지 */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+          <span style={{
+            fontSize: 14, fontWeight: 700,
+            color: cardTheme === "dark" ? "#ccc" : "#555"
           }}>
-            💡 홀수 금액이 관례예요
-          </div>
-        )}
-        {[100000, 200000, 1000000].includes(tier.amount) && (
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 4,
-            background: "#FFF7ED", border: "1px solid #FED7AA",
-            borderRadius: 100, padding: "3px 10px",
-            fontSize: 11, fontWeight: 600, color: "#C2410C",
-            marginBottom: 10, animation: "slideUp 0.4s ease 0.38s both"
-          }}>
-            💡 짝수지만 10만원 단위는 괜찮아요
-          </div>
-        )}
+            {tier.title}
+          </span>
+          {[30000, 50000, 70000, 150000, 300000, 500000].includes(tier.amount) && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, color: "#15803D",
+              background: "#F0FDF4", borderRadius: 100, padding: "2px 8px",
+              border: "1px solid #BBF7D0"
+            }}>홀수 관례</span>
+          )}
+          {[100000, 200000, 1000000].includes(tier.amount) && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, color: "#C2410C",
+              background: "#FFF7ED", borderRadius: 100, padding: "2px 8px",
+              border: "1px solid #FED7AA"
+            }}>10만원 단위 OK</span>
+          )}
+        </div>
 
-        {/* 구분선 */}
-        <div style={{ width: 32, height: 2, background: `${tier.color}66`, borderRadius: 2, margin: "0 auto 12px", animation: "slideUp 0.4s ease 0.4s both" }} />
-        {/* 멘트 */}
-        <p style={{
-          fontSize: 13, color: cardTheme === "dark" ? "#bbb" : "#555", lineHeight: 1.7, margin: 0,
-          animation: "slideUp 0.4s ease 0.45s both"
-        }}>
-          {tier.message}
-        </p>
-
-        {/* 역지사지 한 줄 코멘트 */}
+        {/* 멘트 + 역지사지 — 가로 분할 */}
         <div style={{
-          marginTop: 12, padding: "8px 14px",
-          background: cardTheme === "dark" ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)",
-          borderRadius: 10, fontSize: 12,
-          color: cardTheme === "dark" ? "#aaa" : "#888"
+          background: cardTheme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.03)",
+          borderRadius: 16, padding: "14px 16px",
+          display: "flex", flexDirection: "column", gap: 10
         }}>
-          {tier.amount <= 30000 && "💭 내가 받는다면? 솔직히 크게 서운하진 않을 것 같아요."}
-          {tier.amount === 50000 && "💭 내가 받는다면? 딱 적당하다 싶을 금액이에요."}
-          {tier.amount === 70000 && "💭 내가 받는다면? 오, 신경 써줬구나 싶을 거예요."}
-          {tier.amount === 100000 && "💭 내가 받는다면? 진짜 친구구나 싶을 금액이에요."}
-          {tier.amount >= 150000 && "💭 내가 받는다면? 평생 기억할 것 같아요."}
+          <p style={{
+            fontSize: 13, lineHeight: 1.7, margin: 0,
+            color: cardTheme === "dark" ? "#ccc" : "#444"
+          }}>
+            {tier.message}
+          </p>
+          <div style={{
+            borderTop: cardTheme === "dark" ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)",
+            paddingTop: 10, fontSize: 12,
+            color: cardTheme === "dark" ? "#888" : "#999"
+          }}>
+            {tier.amount <= 30000 && "💭 내가 받는다면? 솔직히 크게 서운하진 않을 것 같아요."}
+            {tier.amount === 50000 && "💭 내가 받는다면? 딱 적당하다 싶을 금액이에요."}
+            {tier.amount === 70000 && "💭 내가 받는다면? 오, 신경 써줬구나 싶을 거예요."}
+            {tier.amount === 100000 && "💭 내가 받는다면? 진짜 친구구나 싶을 금액이에요."}
+            {tier.amount >= 150000 && "💭 내가 받는다면? 평생 기억할 것 같아요."}
+          </div>
+        </div>
+
+        {/* 인연점수 — 카드 내부 하단 */}
+        <div style={{ marginTop: 16 }}>
+          <ScoreBar score={total} color={cardTheme === "dark" ? "#FF6B6B" : tier.color} />
         </div>
       </div>
 
-      {/* 점수 */}
-      <div style={{
-        background: "#fff", borderRadius: 14, padding: "14px 16px",
-        marginBottom: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-        animation: "staggerIn 0.4s ease 0.3s both"
-      }}>
-        <ScoreBar score={total} color={tier.color} />
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
-          {result.breakdown?.length > 0 && (
-            <button
-              onClick={() => setBreakdownOpen(o => !o)}
-              style={{
-                padding: "4px 10px", borderRadius: 100,
-                border: "1px solid #f0f0f0", background: "#fafafa",
-                color: "#888", cursor: "pointer", fontSize: 11,
-                fontFamily: "inherit", fontWeight: 600
-              }}
-            >
-              {breakdownOpen ? "접기 ▲" : "왜 이 금액? ▼"}
-            </button>
-          )}
-        </div>
-        {breakdownOpen && result.breakdown?.length > 0 && (
+      {/* ── 식대 업그레이드 알림 ── */}
+      {result.upgradedByMeal && (
         <div style={{
-          borderTop: "1px solid #f0f0f0",
-          marginTop: 14,
-          paddingTop: 14
+          fontSize: 12, color: "#B45309",
+          background: "#FFFBEB", border: "1px solid #FDE68A",
+          borderRadius: 10, padding: "8px 14px", marginBottom: 8, textAlign: "center"
         }}>
-          <div style={{
-            fontSize: 11,
-            color: "#aaa",
-            lineHeight: 1.5,
-            marginBottom: 10
-          }}>
-            💡 최종 점수는 관계 유형 × 친밀도 보정으로 계산돼요. 항목 합산과 다를 수 있어요.
-          </div>
+          💡 {result.venue?.name} 식대 기준으로 한 단계 올렸어요
+        </div>
+      )}
 
-          {result.breakdown.map((item, i) => (
-              <div key={i} style={{
+      {/* ── 탭 네비게이션 ── */}
+      <div style={{
+        display: "flex", gap: 0, marginBottom: 12, marginTop: 12,
+        background: "#f3f4f6", borderRadius: 14, padding: 4
+      }}>
+        {[
+          { key: "info", label: "📊 통계" },
+          { key: "share", label: "🔗 공유" },
+          { key: "tools", label: "🛠️ 도구" },
+        ].map(tab => (
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+            flex: 1, padding: "9px 0", borderRadius: 10, border: "none",
+            background: activeTab === tab.key ? "#fff" : "transparent",
+            color: activeTab === tab.key ? "#111" : "#999",
+            cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit",
+            boxShadow: activeTab === tab.key ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
+            transition: "all 0.15s"
+          }}>{tab.label}</button>
+        ))}
+      </div>
+
+      {/* ── 탭: 통계 ── */}
+      {activeTab === "info" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, animation: "fadeSlideIn 0.25s ease" }}>
+
+          {/* 왜 이 금액 아코디언 */}
+          {result.breakdown?.length > 0 && (
+            <div style={{
+              background: "#fff", borderRadius: 16, overflow: "hidden",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.06)"
+            }}>
+              <button onClick={() => setBreakdownOpen(o => !o)} style={{
+                width: "100%", padding: "14px 16px",
                 display: "flex", justifyContent: "space-between", alignItems: "center",
-                animation: `staggerIn 0.3s ease ${i * 0.05}s both`
+                border: "none", background: "transparent",
+                cursor: "pointer", fontFamily: "inherit"
               }}>
-                <span style={{ fontSize: 12, color: "#888", flex: 1, marginRight: 8 }}>{item.label}</span>
-                <span style={{
-                  fontSize: 12, fontWeight: 700,
-                  color: item.score > 0 ? "#22C55E" : "#EF4444"
-                }}>
-                  {item.score > 0 ? `+${item.score}` : item.score}점
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>왜 이 금액인가요?</span>
+                <span style={{ fontSize: 12, color: "#aaa" }}>{breakdownOpen ? "▲" : "▼"}</span>
+              </button>
+              {breakdownOpen && (
+                <div style={{ padding: "0 16px 14px", borderTop: "1px solid #f5f5f5" }}>
+                  <div style={{ fontSize: 11, color: "#bbb", margin: "10px 0 8px" }}>
+                    관계 유형 × 친밀도 보정 방식으로 계산돼요
+                  </div>
+                  {result.breakdown.map((item, i) => (
+                    <div key={i} style={{
+                      display: "flex", justifyContent: "space-between",
+                      padding: "5px 0", borderBottom: i < result.breakdown.length - 1 ? "1px solid #f9f9f9" : "none"
+                    }}>
+                      <span style={{ fontSize: 12, color: "#666" }}>{item.label}</span>
+                      <span style={{
+                        fontSize: 12, fontWeight: 700,
+                        color: item.score > 0 ? "#22C55E" : "#EF4444"
+                      }}>
+                        {item.score > 0 ? `+${item.score}` : item.score}점
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 통계 카드 */}
+          {stats && (
+            <div style={{
+              background: "#fff", borderRadius: 16, padding: "16px",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.06)"
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#ccc", marginBottom: 12 }}>
+                최근 30일 · {stats.total.toLocaleString()}명 참여
+              </div>
+              <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>같은 금액 선택 비율</div>
+                  <div style={{ height: 6, background: "#f0f0f0", borderRadius: 100, overflow: "hidden" }}>
+                    <div style={{
+                      height: "100%", borderRadius: 100,
+                      background: `linear-gradient(90deg, ${tier.color}, ${tier.color}88)`,
+                      width: `${stats.percent}%`, transition: "width 1s ease 0.3s"
+                    }} />
+                  </div>
+                </div>
+                <span style={{ fontSize: 22, fontWeight: 900, color: "#111", minWidth: 44 }}>
+                  {stats.percent}%
                 </span>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-      {result.upgradedByMeal && (
-      <div style={{
-        fontSize: 12, color: "#B45309",
-        background: "#FFFBEB", border: "1px solid #FDE68A",
-        borderRadius: 8, padding: "8px 12px", marginTop: 8, textAlign: "center"
-      }}>
-        💡 {result.venue?.name} 평균 식대({result.mealFloor?.toLocaleString()}원)를 고려해 한 단계 올렸어요
-      </div>
-    )}
-
-      {/* 비슷한 사람 통계 */}
-      {stats && (
-        <div style={{
-          background: "#fff", border: "1px solid #f0f0f0",
-          borderRadius: 16, padding: "16px", marginBottom: 12,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-          animation: "staggerIn 0.4s ease 0.5s both"
-        }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#bbb", letterSpacing: 1, marginBottom: 12 }}>
-            📊 최근 30일 · {stats.total.toLocaleString()}명 참여
-          </div>
-
-          {/* 이 금액 선택 비율 */}
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <span style={{ fontSize: 13, color: "#555" }}>나와 비슷한 사람들의 선택</span>
-              <span style={{ fontSize: 15, fontWeight: 800, color: "#111" }}>{stats.percent}%</span>
-            </div>
-            <div style={{ height: 6, background: "#f5f5f5", borderRadius: 100, overflow: "hidden" }}>
               <div style={{
-                height: "100%", borderRadius: 100,
-                background: "linear-gradient(90deg, #FF6B6B, #FF8E53)",
-                width: `${stats.percent}%`,
-                transition: "width 1s ease 0.6s",
-              }} />
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "8px 12px", background: "#fafafa", borderRadius: 10
+              }}>
+                <span style={{ fontSize: 12, color: "#888" }}>이번 달 최다 선택</span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: "#FF6B6B" }}>
+                  {formatAmount(stats.mostCommonAmount)}
+                </span>
+              </div>
             </div>
+          )}
+
+          {/* 투표 */}
+          <div style={{
+            background: "#fff", borderRadius: 16, padding: "16px",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)", textAlign: "center"
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#111", marginBottom: 12 }}>
+              이 금액, 실제로 내기 괜찮을 것 같아요?
+            </div>
+            {!vote ? (
+              <div style={{ display: "flex", gap: 8 }}>
+                {[
+                  { v: "up", emoji: "👍", label: "괜찮아요", hover: { bg: "#F0FDF4", border: "#86EFAC" } },
+                  { v: "down", emoji: "👎", label: "좀 애매해요", hover: { bg: "#FFF5F5", border: "#FCA5A5" } },
+                ].map(btn => (
+                  <button key={btn.v} onClick={() => handleVote(btn.v)} style={{
+                    flex: 1, padding: "12px 8px", borderRadius: 12,
+                    border: "1.5px solid #f0f0f0", background: "#fafafa",
+                    cursor: "pointer", fontSize: 18, fontFamily: "inherit", transition: "all 0.15s"
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.background = btn.hover.bg; e.currentTarget.style.borderColor = btn.hover.border; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "#fafafa"; e.currentTarget.style.borderColor = "#f0f0f0"; }}
+                  >
+                    {btn.emoji}
+                    <div style={{ fontSize: 11, color: "#777", marginTop: 4, fontWeight: 600 }}>{btn.label}</div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div style={{ animation: "fadeSlideIn 0.3s ease" }}>
+                <div style={{ fontSize: 24, marginBottom: 4 }}>{vote === "up" ? "👍" : "👎"}</div>
+                {voteStats ? (
+                  <>
+                    <div style={{ fontSize: 28, fontWeight: 900, color: vote === "up" ? "#22C55E" : "#FF6B6B" }}>
+                      {Math.round((voteStats.upCount / voteStats.total) * 100)}%
+                    </div>
+                    <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
+                      {formatAmount(tier.amount)}을 낸 {voteStats.total}명 중<br />
+                      <strong style={{ color: "#333" }}>{Math.round((voteStats.upCount / voteStats.total) * 100)}%가 괜찮았다고 했어요</strong>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ fontSize: 12, color: "#888" }}>투표해줘서 고마워요! 🙏</div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* 최다 선택 금액 */}
+          {/* 핵심 문장 */}
           <div style={{
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-            padding: "10px 12px", background: "#fafafa", borderRadius: 10
+            borderLeft: `3px solid ${tier.color}`,
+            paddingLeft: 14, marginTop: 4
           }}>
-            <span style={{ fontSize: 12, color: "#888" }}>이번 달 가장 많이 낸 금액</span>
-            <span style={{ fontSize: 15, fontWeight: 800, color: "#FF6B6B" }}>
-              {formatAmount(stats.mostCommonAmount)}
-            </span>
+            <p style={{ fontSize: 12, color: "#666", margin: 0, lineHeight: 1.8 }}>
+              축의금은 <strong style={{ color: "#111" }}>"관계의 깊이 + 교류 빈도"</strong>로 기준을 잡는 게 가장 안전해요.
+              <span style={{ color: "#FF6B6B", fontWeight: 700 }}> 감정이 아니라 기준이 필요해요.</span>
+            </p>
           </div>
         </div>
       )}
 
-      {/* 이 금액 괜찮나요? 투표 */}
-      <div style={{
-        background: "#fff", border: "1px solid #f0f0f0",
-        borderRadius: 16, padding: "16px", marginBottom: 12,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-        animation: "staggerIn 0.4s ease 0.55s both",
-        textAlign: "center"
-      }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#333", marginBottom: 12 }}>
-          이 금액, 실제로 내기 괜찮을 것 같아요?
-        </div>
-        {!vote ? (
-          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-            <button onClick={() => handleVote('up')} style={{
-              flex: 1, padding: "12px", borderRadius: 12, border: "2px solid #f0f0f0",
-              background: "#fff", cursor: "pointer", fontSize: 20, fontFamily: "inherit",
-              transition: "all 0.15s"
-            }}
-              onMouseEnter={e => { e.currentTarget.style.background = "#F0FDF4"; e.currentTarget.style.borderColor = "#86EFAC"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#f0f0f0"; }}
-            >
-              👍<div style={{ fontSize: 11, color: "#666", marginTop: 4, fontWeight: 600 }}>괜찮아요</div>
-            </button>
-            <button onClick={() => handleVote('down')} style={{
-              flex: 1, padding: "12px", borderRadius: 12, border: "2px solid #f0f0f0",
-              background: "#fff", cursor: "pointer", fontSize: 20, fontFamily: "inherit",
-              transition: "all 0.15s"
-            }}
-              onMouseEnter={e => { e.currentTarget.style.background = "#FFF5F5"; e.currentTarget.style.borderColor = "#FCA5A5"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#f0f0f0"; }}
-            >
-              👎<div style={{ fontSize: 11, color: "#666", marginTop: 4, fontWeight: 600 }}>좀 애매해요</div>
-            </button>
-          </div>
-        ) : (
-          <div style={{ animation: "fadeSlideIn 0.3s ease" }}>
-            <div style={{ fontSize: 22, marginBottom: 6 }}>
-              {vote === 'up' ? '👍' : '👎'}
+      {/* ── 탭: 공유 ── */}
+      {activeTab === "share" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, animation: "fadeSlideIn 0.25s ease" }}>
+
+          {/* 공유 스타일 탭 */}
+          <div style={{
+            background: "#fff", borderRadius: 16, padding: "14px 16px",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)"
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#aaa", marginBottom: 10 }}>공유 문구 스타일</div>
+            <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+              {[
+                { key: "default", label: "기본" },
+                { key: "friend", label: "친구한테" },
+                { key: "work", label: "직장용" },
+              ].map(s => (
+                <button key={s.key} onClick={() => setShareStyle(s.key)} style={{
+                  flex: 1, padding: "8px 0", borderRadius: 10,
+                  border: shareStyle === s.key ? `2px solid ${tier.color}` : "2px solid #f0f0f0",
+                  background: shareStyle === s.key ? `${tier.color}12` : "#fff",
+                  color: shareStyle === s.key ? tier.color : "#888",
+                  cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit"
+                }}>{s.label}</button>
+              ))}
             </div>
-            {voteStats && (
-              <>
-                <div style={{ fontSize: 22, fontWeight: 900, color: vote === 'up' ? "#22C55E" : "#FF6B6B" }}>
-                  {Math.round((voteStats.upCount / voteStats.total) * 100)}%
-                </div>
-                <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
-                  {formatAmount(tier.amount)}을 낸 {voteStats.total.toLocaleString()}명 중<br />
-                  <strong style={{ color: "#333" }}>{Math.round((voteStats.upCount / voteStats.total) * 100)}%가 괜찮았다고 했어요</strong>
-                </div>
-              </>
-            )}
-            {!voteStats && (
-              <div style={{ fontSize: 12, color: "#888" }}>투표해줘서 고마워요! 🙏</div>
-            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <button onClick={handleCopy} style={{
+                width: "100%", padding: "13px", borderRadius: 12, border: "none",
+                background: "#f5f5f5", color: "#333", cursor: "pointer",
+                fontSize: 14, fontWeight: 700, fontFamily: "inherit"
+              }}>
+                {copied ? "✅ 복사됨!" : "🔗 링크 복사"}
+              </button>
+              <button onClick={handleKakaoShare} style={{
+                width: "100%", padding: "13px", borderRadius: 12, border: "none",
+                background: "#FEE500", color: "#3A1D1D", cursor: "pointer",
+                fontSize: 14, fontWeight: 700, fontFamily: "inherit"
+              }}>
+                💬 카카오 공유
+              </button>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={handleSaveImage} disabled={saving} style={{
+                  flex: 1, padding: "11px", borderRadius: 12,
+                  border: "1.5px solid #f0f0f0", background: "#fff",
+                  color: saving ? "#bbb" : "#555", cursor: saving ? "default" : "pointer",
+                  fontSize: 13, fontWeight: 700, fontFamily: "inherit"
+                }}>
+                  {saving ? "⏳ 저장 중..." : "🖼️ 이미지 저장"}
+                </button>
+                <button onClick={() => {
+                  const text = [
+                    `📋 축의금 계산 결과`,
+                    `금액: ${formatAmount(tier.amount)}`,
+                    `관계: ${result.relationLabel || "-"}`,
+                    result.venue?.name && result.venue.name !== "모름" ? `예식장: ${result.venue.name}` : null,
+                    `인연점수: ${total}점`,
+                    `날짜: ${new Date().toLocaleDateString("ko-KR")}`,
+                  ].filter(Boolean).join("\n");
+                  navigator.clipboard.writeText(text).then(() => alert("📋 복사됐어요!"));
+                }} style={{
+                  flex: 1, padding: "11px", borderRadius: 12,
+                  border: "1.5px solid #f0f0f0", background: "#fff",
+                  color: "#555", cursor: "pointer",
+                  fontSize: 13, fontWeight: 700, fontFamily: "inherit"
+                }}>
+                  📝 메모앱용
+                </button>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* 핵심 문장 */}
-      <div style={{
-        background: "#f8f8f8", borderLeft: "3px solid #FF6B6B",
-        borderRadius: "0 12px 12px 0", padding: "12px 14px", marginBottom: 12
-      }}>
-        <p style={{ fontSize: 13, color: "#444", margin: 0, lineHeight: 1.7 }}>
-          축의금은 <strong style={{ color: "#111" }}>"관계의 깊이 + 평소 교류 빈도"</strong>로<br />
-          기준을 잡는 게 가장 안전하다.<br />
-          <span style={{ color: "#FF6B6B", fontWeight: 700 }}>감정이 아니라 기준이 필요하다.</span>
-        </p>
-      </div>
-
-      {/* 공유 버튼 */}
-      {/* 공유 버튼 */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 10, flexDirection: "column" }}>
-        {/* 공유 스타일 탭 */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
-          {[
-            { key: "default", label: "기본" },
-            { key: "friend", label: "친구한테" },
-            { key: "work", label: "직장용" },
-          ].map(s => (
-            <button key={s.key} onClick={() => setShareStyle(s.key)} style={{
-              flex: 1, padding: "7px", borderRadius: 8,
-              border: shareStyle === s.key ? "2px solid #FF6B6B" : "2px solid #f0f0f0",
-              background: shareStyle === s.key ? "#FFF5F5" : "#fff",
-              color: shareStyle === s.key ? "#FF6B6B" : "#888",
-              cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit"
-            }}>{s.label}</button>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={handleCopy} style={{
-            flex: 1, padding: "13px", borderRadius: 14, border: "2px solid #f0f0f0",
-            background: "#fff", color: "#333", cursor: "pointer",
-            fontSize: 14, fontWeight: 700, fontFamily: "inherit"
+          {/* 제보하기 */}
+          <div style={{
+            background: "linear-gradient(135deg, #667eea10, #764ba210)",
+            border: "1px solid #667eea20", borderRadius: 16,
+            padding: "16px", textAlign: "center"
           }}>
-            {copied ? "✅ 복사됨!" : "🔗 링크 복사"}
-          </button>
-          <button onClick={handleSaveImage} disabled={saving} style={{
-            flex: 1, padding: "13px", borderRadius: 14, border: "2px solid #f0f0f0",
-            background: saving ? "#f5f5f5" : "#fff", color: saving ? "#bbb" : "#333",
-            cursor: saving ? "default" : "pointer",
-            fontSize: 14, fontWeight: 700, fontFamily: "inherit"
-          }}>
-            {saving ? "⏳ 저장 중..." : "🖼️ 이미지 저장"}
-          </button>
-        </div>
-        <button onClick={handleKakaoShare} style={{
-          width: "100%", padding: "13px", borderRadius: 14, border: "none",
-          background: "#FEE500", color: "#3A1D1D", cursor: "pointer",
-          fontSize: 14, fontWeight: 700, fontFamily: "inherit"
-        }}>
-          💬 카카오 공유
-        </button>
-        <button onClick={() => {
-          const text = [
-            `📋 축의금 계산 결과`,
-            `금액: ${formatAmount(tier.amount)}`,
-            `관계: ${result.relationLabel || "-"}`,
-            result.venue?.name && result.venue.name !== "모름" ? `예식장: ${result.venue.name}` : null,
-            `인연점수: ${total}점`,
-            `날짜: ${new Date().toLocaleDateString("ko-KR")}`,
-          ].filter(Boolean).join("\n");
-          navigator.clipboard.writeText(text)
-            .then(() => alert("📋 메모 형식으로 복사됐어요!"));
-        }} style={{
-          width: "100%", padding: "11px", borderRadius: 14,
-          border: "2px solid #f0f0f0", background: "#fff",
-          color: "#666", cursor: "pointer", fontSize: 13,
-          fontWeight: 700, fontFamily: "inherit"
-        }}>
-          📝 노션/메모앱용 텍스트 복사
-        </button>
-      </div>
-
-      {/* 제보하기 */}
-      <div style={{
-        background: "linear-gradient(135deg, #667eea15, #764ba215)",
-        border: "1.5px solid #667eea30", borderRadius: 16,
-        padding: "16px", marginBottom: 10, textAlign: "center"
-      }}>
-        <div style={{ fontSize: 18, marginBottom: 6 }}>📮</div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#333", marginBottom: 4 }}>
-          예식장 식대 정보를 알고 있나요?
-        </div>
-        <p style={{ fontSize: 12, color: "#666", margin: "0 0 10px", lineHeight: 1.5 }}>
-          모두가 풍요로운 축의가 될 수 있도록!<br />
-          <strong style={{ color: "#667eea" }}>매달 추첨으로 선물 🎁</strong>을 드려요
-        </p>
-        <button onClick={onReport} style={{
-          padding: "9px 20px", borderRadius: 100, border: "none",
-          background: "linear-gradient(135deg, #667eea, #764ba2)",
-          color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit"
-        }}>
-          제보하기 →
-        </button>
-      </div>
-
-      {/* 웨딩플래너 배너 */}
-      <div style={{
-        background: "#fff", border: "1px solid #e8ecff", borderRadius: 14,
-        padding: "12px 16px", marginBottom: 12,
-        display: "flex", alignItems: "center", gap: 10
-      }}>
-        <span style={{ fontSize: 24 }}>💍</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 10, color: "#aaa" }}>AD · 제휴문의 welcome</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#333" }}>웨딩플래너 무료 상담</div>
-          <div style={{ fontSize: 11, color: "#888" }}>견적 비교하고 최대 30% 절약</div>
-        </div>
-        <button style={{
-          padding: "7px 12px", borderRadius: 8, border: "1px solid #e8ecff",
-          background: "#fff", color: "#667eea", cursor: "pointer",
-          fontSize: 12, fontWeight: 700, fontFamily: "inherit"
-        }}>상담받기</button>
-      </div>
-
-      {/* 3만원 이하면 "안 가도 되나요?" 서브 판단 */}
-      {tier.amount <= 30000 && (
-        <div style={{
-          background: "#FFFBEB", border: "1.5px solid #FDE68A",
-          borderRadius: 16, padding: "16px", marginBottom: 12,
-          animation: "staggerIn 0.4s ease 0.6s both"
-        }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: "#92400E", marginBottom: 8 }}>
-            🤔 솔직히 안 가는 게 나을 수도 있어요
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#333", marginBottom: 4 }}>
+              📮 예식장 식대 알고 있나요?
+            </div>
+            <p style={{ fontSize: 12, color: "#777", margin: "0 0 10px" }}>
+              매달 추첨으로 <strong style={{ color: "#667eea" }}>선물 🎁</strong> 드려요
+            </p>
+            <button onClick={onReport} style={{
+              padding: "9px 20px", borderRadius: 100, border: "none",
+              background: "linear-gradient(135deg, #667eea, #764ba2)",
+              color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit"
+            }}>제보하기 →</button>
           </div>
-          <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.7 }}>
-            3만원이 나왔다는 건 인연이 꽤 얕다는 뜻이에요.<br />
-            <strong>직접 가는 대신 계좌이체</strong>도 충분히 예의 있는 선택이에요.<br />
-            억지로 참석해서 어색한 것보다 나을 수 있어요.
+
+          {/* 광고 */}
+          <div style={{
+            background: "#fff", border: "1px solid #f0f0f0", borderRadius: 14,
+            padding: "12px 16px", display: "flex", alignItems: "center", gap: 10
+          }}>
+            <span style={{ fontSize: 22 }}>💍</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: "#ccc" }}>AD · 제휴문의 welcome</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#333" }}>웨딩플래너 무료 상담</div>
+              <div style={{ fontSize: 11, color: "#aaa" }}>견적 비교하고 최대 30% 절약</div>
+            </div>
+            <button style={{
+              padding: "7px 12px", borderRadius: 8, border: "1px solid #e8ecff",
+              background: "#fff", color: "#667eea", cursor: "pointer",
+              fontSize: 12, fontWeight: 700, fontFamily: "inherit"
+            }}>상담받기</button>
           </div>
         </div>
       )}
 
-     {/* D-Day 카운터 */}
-      <div style={{
-        background: "#fff", border: "1px solid #f0f0f0",
-        borderRadius: 16, padding: "16px", marginBottom: 12,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
-      }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: "#111", marginBottom: 10 }}>
-          📅 결혼식 날짜 입력하면 D-Day 알려줄게요
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <input
-            type="date"
-            value={weddingDate}
-            onChange={e => {
-              setWeddingDate(e.target.value);
-              if (e.target.value) {
-                const diff = Math.ceil((new Date(e.target.value) - new Date()) / (1000 * 60 * 60 * 24));
-                setDDay(diff);
-              }
-            }}
-            style={{
-              flex: 1, padding: "10px 12px", borderRadius: 10,
-              border: "1.5px solid #f0f0f0", fontSize: 14,
-              fontFamily: "inherit", outline: "none"
-            }}
-          />
-        </div>
-        {dDay !== null && (
-          <div style={{
-            marginTop: 10, textAlign: "center",
-            animation: "fadeSlideIn 0.3s ease"
-          }}>
+      {/* ── 탭: 도구 ── */}
+      {activeTab === "tools" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, animation: "fadeSlideIn 0.25s ease" }}>
+
+          {/* 3만원 → 안가도 돼요 */}
+          {tier.amount <= 30000 && (
             <div style={{
-              fontSize: 32, fontWeight: 900,
-              color: dDay <= 7 ? "#EF4444" : dDay <= 30 ? "#F59E0B" : "#FF6B6B"
+              background: "#FFFBEB", border: "1.5px solid #FDE68A",
+              borderRadius: 16, padding: "14px 16px"
             }}>
-              {dDay === 0 ? "D-Day 🎊" : dDay > 0 ? `D-${dDay}` : `D+${Math.abs(dDay)}`}
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#92400E", marginBottom: 6 }}>
+                🤔 솔직히 안 가는 게 나을 수도 있어요
+              </div>
+              <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.7 }}>
+                3만원이 나왔다는 건 인연이 얕다는 뜻이에요.
+                <strong> 계좌이체</strong>도 충분히 예의 있는 선택이에요.
+              </div>
             </div>
-            <div style={{ fontSize: 12, color: "#aaa", marginTop: 4 }}>
-              {dDay > 0
-                ? dDay <= 7 ? "🔥 곧이에요! 서두르세요" : dDay <= 30 ? "⏰ 한 달 안이에요" : "여유 있어요 😊"
-                : "이미 지난 날짜예요"}
+          )}
+
+          {/* D-Day */}
+          <div style={{
+            background: "#fff", borderRadius: 16, padding: "16px",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)"
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#111", marginBottom: 10 }}>
+              📅 결혼식 D-Day
             </div>
+            <input
+              type="date" value={weddingDate}
+              onChange={e => {
+                setWeddingDate(e.target.value);
+                if (e.target.value) {
+                  const diff = Math.ceil((new Date(e.target.value) - new Date()) / (1000 * 60 * 60 * 24));
+                  setDDay(diff);
+                }
+              }}
+              style={{
+                width: "100%", padding: "10px 12px", borderRadius: 10,
+                border: "1.5px solid #f0f0f0", fontSize: 14,
+                fontFamily: "inherit", outline: "none", boxSizing: "border-box"
+              }}
+            />
+            {dDay !== null && (
+              <div style={{ textAlign: "center", marginTop: 12, animation: "fadeSlideIn 0.3s ease" }}>
+                <div style={{
+                  fontSize: 36, fontWeight: 900,
+                  color: dDay <= 7 ? "#EF4444" : dDay <= 30 ? "#F59E0B" : tier.color
+                }}>
+                  {dDay === 0 ? "D-Day 🎊" : dDay > 0 ? `D-${dDay}` : `D+${Math.abs(dDay)}`}
+                </div>
+                <div style={{ fontSize: 12, color: "#aaa", marginTop: 4 }}>
+                  {dDay > 0
+                    ? dDay <= 7 ? "🔥 곧이에요!" : dDay <= 30 ? "⏰ 한 달 안이에요" : "여유 있어요 😊"
+                    : "이미 지난 날짜예요"}
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-     {/* 축의금 준비 체크리스트 */}
-      <CheckList amount={tier.amount} />
+          {/* 체크리스트 */}
+          <CheckList amount={tier.amount} />
 
-      {onAddToList && (
-        <button onClick={() => onAddToList(tier.amount)} style={{
-          width: "100%", padding: "13px", borderRadius: 14, border: "2px solid #f0f0f0",
-          background: "#fff", color: "#555", cursor: "pointer",
-          fontSize: 14, fontWeight: 700, fontFamily: "inherit", marginBottom: 8
-        }}>
-          📋 이번 달 목록에 추가하기
-        </button>
+          {/* 목록 추가 */}
+          {onAddToList && (
+            <button onClick={() => onAddToList(tier.amount)} style={{
+              width: "100%", padding: "13px", borderRadius: 14, border: "1.5px solid #f0f0f0",
+              background: "#fff", color: "#555", cursor: "pointer",
+              fontSize: 13, fontWeight: 700, fontFamily: "inherit"
+            }}>
+              📋 이번 달 목록에 추가하기
+            </button>
+          )}
+
+          {/* SEO 가이드 */}
+          <details>
+            <summary style={{
+              fontSize: 12, color: "#ccc", cursor: "pointer",
+              padding: "8px 0", listStyle: "none", textAlign: "center"
+            }}>
+              💡 관계별 축의금 가이드 보기
+            </summary>
+            <div style={{ fontSize: 12, color: "#888", lineHeight: 1.8, marginTop: 8, padding: "0 4px" }}>
+              <p><strong style={{ color: "#555" }}>직장 동료 · 상사</strong> — 5만원이 무난해요. 깊을수록 7~10만원.</p>
+              <p><strong style={{ color: "#555" }}>친한 친구</strong> — 10만원 기준. 베프면 15~20만원도 자연스러워요.</p>
+              <p><strong style={{ color: "#555" }}>지인 · SNS</strong> — 3~5만원이면 충분해요.</p>
+              <p><strong style={{ color: "#555" }}>가족 · 친척</strong> — 집안 분위기에 따라 10~30만원.</p>
+            </div>
+          </details>
+        </div>
       )}
 
-      <button onClick={onRetry} style={{
-        width: "100%", padding: "14px", borderRadius: 14, border: "none",
-        background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
-        color: "#fff", cursor: "pointer", fontSize: 15, fontWeight: 700, fontFamily: "inherit",
-        boxShadow: "0 4px 16px rgba(255,107,107,0.3)"
-      }}>
-        🔄 다시 계산하기
-      </button>
-
-      {/* 결과 만료 안내 */}
-      <div style={{
-        textAlign: "center", fontSize: 11, color: "#ccc",
-        marginTop: 12, marginBottom: 4
-      }}>
-        🕐 {calcTime.toLocaleDateString("ko-KR")} 기준 결과예요 · 상황이 바뀌면 다시 계산하세요
-      </div>
-
-      {/* SEO용 관계별 가이드 — 접어두기 */}
-      <details style={{ marginTop: 16 }}>
-        <summary style={{
-          fontSize: 12, color: "#bbb", cursor: "pointer", padding: "8px 0",
-          listStyle: "none", textAlign: "center"
+      {/* ── 하단 고정 버튼 영역 ── */}
+      <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+        <button onClick={onRetry} style={{
+          width: "100%", padding: "15px", borderRadius: 16, border: "none",
+          background: "linear-gradient(135deg, #FF6B6B, #FF8E53)",
+          color: "#fff", cursor: "pointer", fontSize: 15, fontWeight: 800,
+          fontFamily: "inherit", boxShadow: "0 4px 16px rgba(255,107,107,0.3)"
         }}>
-          💡 관계별 축의금 가이드 보기
-        </summary>
-        <div style={{ fontSize: 12, color: "#888", lineHeight: 1.8, marginTop: 10, padding: "0 4px" }}>
-          <p><strong style={{ color: "#555" }}>직장 동료 · 상사</strong> — 5만원이 가장 무난해요. 관계가 깊을수록 7~10만원. 부장급 이상 자녀 결혼식은 조직 문화를 따르세요.</p>
-          <p><strong style={{ color: "#555" }}>친한 친구</strong> — 10만원이 기준이에요. 베프라면 15~20만원도 충분히 자연스러워요.</p>
-          <p><strong style={{ color: "#555" }}>지인 · SNS 친구</strong> — 3~5만원이면 충분해요. 안 가도 된다면 계좌이체로 대체도 괜찮아요.</p>
-          <p><strong style={{ color: "#555" }}>가족 · 친척</strong> — 관계와 집안 분위기에 따라 달라요. 일반적으로 10~30만원 범위예요.</p>
-          <p style={{ color: "#aaa" }}>* 이 앱은 관계 친밀도 · 거리 · 식대를 종합해 계산해요.</p>
+          🔄 다시 계산하기
+        </button>
+        <div style={{ textAlign: "center", fontSize: 11, color: "#ddd" }}>
+          🕐 {calcTime.toLocaleDateString("ko-KR")} 기준 · 상황이 바뀌면 다시 계산하세요
         </div>
-      </details>
+      </div>
 
       <ShareImageCard result={result} cardRef={shareCardRef} />
     </div>
