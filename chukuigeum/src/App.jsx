@@ -1589,11 +1589,13 @@ function AmountCountUp({ amount, color }) {
     const duration = 800;
     const steps = 30;
     const increment = amount / steps;
+    // 5만원 미만은 1000원 단위, 이상은 10000원 단위
+    const unit = amount < 50000 ? 1000 : 10000;
     let current = 0;
     const timer = setInterval(() => {
       current += increment;
       if (current >= amount) { setDisplayed(amount); clearInterval(timer); }
-      else setDisplayed(Math.round(current / 10000) * 10000);
+      else setDisplayed(Math.round(current / unit) * unit);
     }, duration / steps);
     return () => clearInterval(timer);
   }, [amount]);
@@ -1789,7 +1791,7 @@ function ResultCard({ result, onRetry, onReport }) {
             </button>
           )}
         </div>
-        {showBreakdown && result.breakdown?.length > 0 && (
+        {breakdownOpen && result.breakdown?.length > 0 && (
         <div style={{
           borderTop: "1px solid #f0f0f0",
           marginTop: 14,
@@ -1801,7 +1803,7 @@ function ResultCard({ result, onRetry, onReport }) {
             lineHeight: 1.5,
             marginBottom: 10
           }}>
-            각 항목은 최종 점수에 반영된 관계 신호예요. 최종 점수는 관계 유형과 친밀도를 보정해 계산돼요.
+            💡 최종 점수는 관계 유형 × 친밀도 보정으로 계산돼요. 항목 합산과 다를 수 있어요.
           </div>
 
           {result.breakdown.map((item, i) => (
@@ -2113,7 +2115,14 @@ export default function App() {
       );
     }
 
-    const nextStep = stepIndex + 1;
+    // venue skipped면 distance도 건너뜀
+    let nextStep = stepIndex + 1;
+    if (
+      CHAT_FLOW[nextStep]?.id === "distance" &&
+      newAnswers.venue?.skipped
+    ) {
+      nextStep += 1;
+    }
 
     if (nextStep >= CHAT_FLOW.length) {
       // 결과 계산
@@ -2127,7 +2136,7 @@ export default function App() {
         );
         setIsDone(true);
         setMessages(prev => [...prev, { type: "result", id: Date.now() }]);
-        scrollToResult();
+        scrollToBottom();
       }, 1000);
     } else {
       // 다음 질문
@@ -2147,10 +2156,8 @@ export default function App() {
     setAnswers({});
     setIsDone(false);
     setResult(null);
-    setTimeout(() => {
-      setMessages([{ type: "bot", text: "안녕하세요! 👋\n축의금 얼마 낼지 같이 계산해볼게요.\n\n먼저, 이 분과 어떤 관계예요?", id: Date.now() }]);
-      setMessages(prev => [...prev, { type: "options", step: 0, id: Date.now() + 1 }]);
-    }, 100);
+    setStarted(false);
+    setTimeout(() => setStarted(true), 50);
   };
 
   return (
