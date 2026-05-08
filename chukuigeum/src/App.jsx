@@ -1218,7 +1218,7 @@ function ResultCard({ result, onRetry, onReport }) {
 export default function App() {
   const [started, setStarted] = useState(false);
   const [messages, setMessages] = useState([]);
-  const [currentStep, setCurrentStep] = useState(0);
+  const [loadingSharedResult, setLoadingSharedResult] = useState(true);
   const [answers, setAnswers] = useState({});
   const [isTyping, setIsTyping] = useState(false);
   const [isDone, setIsDone] = useState(false);
@@ -1243,9 +1243,76 @@ export default function App() {
     });
   };
 
+  useEffect(() => {
+  const loadSharedResult = async () => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("token");
+
+      if (!token) {
+        setLoadingSharedResult(false);
+        return;
+      }
+
+      const { createClient } = await import("@supabase/supabase-js");
+
+      const supabase = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY
+      );
+
+      const { data, error } = await supabase
+        .from("calculations")
+        .select("*")
+        .eq("share_token", token)
+        .single();
+
+      if (error || !data) {
+        console.error("공유 결과 조회 실패", error);
+        setLoadingSharedResult(false);
+        return;
+      }
+
+      const matchedTier =
+        RESULT_TIERS.find(t => t.amount === data.amount)
+        || RESULT_TIERS[1];
+
+      const restoredResult = {
+        total: data.score,
+        tier: matchedTier,
+        upgradedByMeal: false,
+        mealFloor: null,
+        venue: null,
+      };
+
+      setResult(restoredResult);
+      setStarted(true);
+      setIsDone(true);
+
+      setMessages([
+        {
+          type: "bot",
+          text: "공유된 축의금 계산 결과를 불러왔어요 🎉",
+          id: Date.now()
+        },
+        {
+          type: "result",
+          id: Date.now() + 1
+        }
+      ]);
+    } catch (e) {
+      console.error(e);
+    }
+
+    setLoadingSharedResult(false);
+  };
+
+  loadSharedResult();
+}, []);
+
   // 시작
   useEffect(() => {
-    if (!started) return;
+  if (!started || isDone) return;
     const start = async () => {
       await addBotMessage("안녕하세요! 👋\n축의금 얼마 낼지 같이 계산해볼게요.\n\n먼저, 이 분과 어떤 관계예요?", 600);
       setMessages(prev => [...prev, { type: "options", step: 0, id: Date.now() + 1 }]);
@@ -1313,7 +1380,6 @@ export default function App() {
   const retry = () => {
     setMessages([]);
     setAnswers({});
-    setCurrentStep(0);
     setIsDone(false);
     setResult(null);
     setTimeout(() => {
@@ -1403,8 +1469,20 @@ export default function App() {
               </p>
             </div>
           )}
+          {loadingSharedResult && (
+            <div style={{
+              minHeight: "100vh",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              fontSize: 16,
+              color: "#666"
+            }}>
+              공유 결과 불러오는 중... ⏳
+            </div>
+          )}
                   {/* 인트로 화면 */}
-          {!started && (
+          {!loadingSharedResult && !started && (
             <div style={{ padding: "24px 16px", animation: "fadeSlideIn 0.5s ease" }}>
               <div style={{ textAlign: "center", marginBottom: 24 }}>
                  <div style={{ fontSize: 64, marginBottom: 20 }}>💒</div>
