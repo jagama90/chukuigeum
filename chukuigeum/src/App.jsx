@@ -4,23 +4,15 @@ import html2canvas from "html2canvas";
 // ─── 상수 ────────────────────────────────────────────────────────────────────
 
 const RESULT_TIERS = [
-  { min: -99, max: 15, amount: 30000, title: "마음만 받을게요 😅", emoji: "🌱", color: "#95a5a6",
+  { min: -99, max: 15, amount: 50000, title: "국룰 5만원, 딱 여기까지 🤝", emoji: "💵", color: "#95a5a6",
     messages: [
-      "솔직히 말할게요. 이 분과의 인연은 얇아요. 3만원도 충분한 성의예요.",
-      "억지로 더 낼 필요 없어요. 3만원은 예의를 지키는 최소한의 표현이에요.",
-      "인연의 깊이가 곧 금액이에요. 얇은 인연엔 얇은 봉투가 정직해요.",
-      "3만원이 적다고 느껴진다면, 사실 그게 맞는 금액이에요.",
-    ]
-  },
-  { min: 16, max: 25, amount: 50000, title: "국룰 5만원! 🤝", emoji: "💵", color: "#27ae60",
-    messages: [
-      "축의금 세계의 황금비율. 5만원은 가장 정직한 표현이에요.",
-      "대한민국 직장인의 99%가 선택하는 그 금액. 틀릴 수가 없어요.",
-      "5만원은 '우리 사이가 나쁜 건 아니잖아요'의 언어예요.",
+      "솔직히 말할게요. 이 분과의 인연은 얇아요. 5만원이 가장 정직한 표현이에요.",
+      "억지로 더 낼 필요 없어요. 5만원은 예의를 지키는 최소한의 표현이에요.",
+      "인연의 깊이가 곧 금액이에요. 얇은 인연엔 5만원 봉투가 딱 맞아요.",
       "고민할 필요 없어요. 5만원은 이미 국가 공인 표준이에요.",
     ]
   },
-  { min: 26, max: 35, amount: 70000, title: "7만원... 진심 🫡", emoji: "💐", color: "#2980b9",
+  { min: 16, max: 25, amount: 70000, title: "7만원... 마음은 있어요 🫡", emoji: "💐", color: "#27ae60",
     messages: [
       "5만원은 좀 적고 10만원은 좀 부담스러운 그 사이. 따뜻한 시그널이에요.",
       "7만원은 '나 너 꽤 챙기는 사람이야'의 언어예요.",
@@ -28,7 +20,7 @@ const RESULT_TIERS = [
       "5에서 한 걸음 더. 그 한 걸음이 관계를 말해줘요.",
     ]
   },
-  { min: 36, max: 45, amount: 100000, title: "10만원, 진짜 친구 ✅", emoji: "👑", color: "#8e44ad",
+  { min: 26, max: 35, amount: 100000, title: "10만원, 진짜 친구 ✅", emoji: "👑", color: "#2980b9",
     messages: [
       "이 분은 당신의 진짜 친구예요. 10만원짜리 우정은 흔하지 않아요.",
       "10만원을 자연스럽게 낼 수 있는 사람이 몇 명이나 돼요? 이 분은 그 안에 있어요.",
@@ -36,7 +28,7 @@ const RESULT_TIERS = [
       "받는 사람 입장에서 10만원짜리 봉투는 오래 기억해요.",
     ]
   },
-  { min: 46, max: 60, amount: 150000, title: "15만원... 형제야? 🥹", emoji: "🫂", color: "#e67e22",
+  { min: 36, max: 45, amount: 150000, title: "15만원... 형제야? 🥹", emoji: "🫂", color: "#8e44ad",
     messages: [
       "이 정도면 그냥 가족이에요. 받는 분도 평생 기억할 거예요.",
       "15만원은 '내 결혼식에 꼭 와줘'의 언어예요.",
@@ -376,7 +368,11 @@ const CHAT_FLOW = [
 let _supabase = null;
 async function getSupabase() {
   if (_supabase) return _supabase;
-  const supabase = await getSupabase();
+  const { createClient } = await import('@supabase/supabase-js');
+  _supabase = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY
+  );
   return _supabase;
 }
 
@@ -596,7 +592,7 @@ function calcResult(answers) {
     tier: {
       ...finalTier,
       message: isGhosted
-        ? "연락 끊겼다 청첩장 받은 거, 다들 겪어요. 3만원도 충분한 예의예요. 사실 안 가도 돼요."
+        ? "연락 끊겼다 청첩장 받은 거, 다들 겪어요. 5만원도 충분한 예의예요. 사실 안 가도 돼요."
         : randomMessage,
     },
     upgradedByMeal: !isGhosted && finalTier !== baseTier,
@@ -640,11 +636,7 @@ function MonthlyTop3Card() {
   useEffect(() => {
     const load = async () => {
       try {
-        const { createClient } = await import("@supabase/supabase-js");
-        const supabase = createClient(
-          import.meta.env.VITE_SUPABASE_URL,
-          import.meta.env.VITE_SUPABASE_ANON_KEY
-        );
+        const supabase = await getSupabase();
 
         const { data } = await supabase
           .from("calculations")
@@ -722,11 +714,7 @@ function RelationAvgStats() {
   useEffect(() => {
     const load = async () => {
       try {
-        const { createClient } = await import("@supabase/supabase-js");
-        const supabase = createClient(
-          import.meta.env.VITE_SUPABASE_URL,
-          import.meta.env.VITE_SUPABASE_ANON_KEY
-        );
+        const supabase = await getSupabase();
         const { data } = await supabase
           .from("calculations")
           .select("relation_label, amount")
@@ -790,11 +778,7 @@ function VenueCountBadge() {
   useEffect(() => {
     const load = async () => {
       try {
-        const { createClient } = await import("@supabase/supabase-js");
-        const supabase = createClient(
-          import.meta.env.VITE_SUPABASE_URL,
-          import.meta.env.VITE_SUPABASE_ANON_KEY
-        );
+        const supabase = await getSupabase();
         const { count: c } = await supabase
           .from("venues")
           .select("*", { count: "exact", head: true });
@@ -826,11 +810,7 @@ function SeasonBanner() {
   useEffect(() => {
     const load = async () => {
       try {
-        const { createClient } = await import("@supabase/supabase-js");
-        const supabase = createClient(
-          import.meta.env.VITE_SUPABASE_URL,
-          import.meta.env.VITE_SUPABASE_ANON_KEY
-        );
+        const supabase = await getSupabase();
         const now = Date.now();
         const [{ count: thisMonth }, { count: lastMonth }] = await Promise.all([
           supabase.from("calculations").select("*", { count: "exact", head: true })
@@ -1420,15 +1400,19 @@ function VenueSearch({ onSelect, onReport }) {
     setMealLoading(false);
   };
 
+  // grade별 기본 avgMeal (DB/AI 데이터 없을 때 폴백)
+  const GRADE_DEFAULT_MEAL = { 5: 150000, 4: 120000, 3: 80000, 2: 50000, 1: 0 };
+
   const confirm = (manualGrade) => {
     setConfirmed(true);
     const grade = manualGrade || mealInfo?.grade || 3;
-    const avgMeal = mealInfo?.meal_cost
+    const avgMealFromInfo = mealInfo?.meal_cost
       ? mealInfo.meal_cost
       : mealInfo?.meal_cost_min && mealInfo?.meal_cost_max
         ? Math.round((mealInfo.meal_cost_min + mealInfo.meal_cost_max) / 2)
         : null;
-    const venueName = selectedPlace?.place_name || query;
+    // DB/AI 데이터 없으면 grade 기반 기본값으로 폴백
+    const avgMeal = avgMealFromInfo || GRADE_DEFAULT_MEAL[grade] || null;
     onSelect({
       name: selectedPlace?.place_name || query,
       address: selectedPlace?.address_name || "",
@@ -2524,7 +2508,7 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
           }}>
             {tier.title}
           </span>
-          {[30000, 50000, 70000, 150000, 300000, 500000].includes(tier.amount) && (
+          {[50000, 70000, 150000, 300000, 500000].includes(tier.amount) && (
             <span style={{
               fontSize: 10, fontWeight: 700, color: "#15803D",
               background: "#F0FDF4", borderRadius: 100, padding: "2px 8px",
@@ -2557,8 +2541,7 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
             paddingTop: 10, fontSize: 12,
             color: cardTheme === "dark" ? "#888" : "#999"
           }}>
-            {tier.amount <= 30000 && "💭 역지사지로? 솔직히 크게 서운하진 않을 것 같아요."}
-            {tier.amount === 50000 && "💭 역지사지로? 딱 적당하다 싶을 금액이에요."}
+            {tier.amount === 50000 && "💭 역지사지로? 솔직히 크게 서운하진 않을 것 같아요."}
             {tier.amount === 70000 && "💭 역지사지로? 오, 신경 써줬구나 싶을 거예요."}
             {tier.amount === 100000 && "💭 역지사지로? 진짜 친구구나 싶을 금액이에요."}
             {tier.amount === 150000 && "💭 역지사지로? 이 분은 내 결혼식에 꼭 와줬으면 해요."}
@@ -2737,15 +2720,30 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
             )}
           </div>
 
-          {/* 핵심 문장 */}
+          {/* 핵심 문장 배너 */}
           <div style={{
-            borderLeft: `3px solid ${tier.color}`,
-            paddingLeft: 14, marginTop: 4
+            background: `linear-gradient(135deg, ${tier.color}12, ${tier.color}06)`,
+            border: `1px solid ${tier.color}25`,
+            borderRadius: 16, padding: "18px 20px",
+            textAlign: "center", marginTop: 4
           }}>
-            <p style={{ fontSize: 12, color: "#666", margin: 0, lineHeight: 1.8 }}>
-              축의금은 <strong style={{ color: "#111" }}>"관계의 깊이 + 교류 빈도"</strong>로 기준을 잡는 게 가장 안전해요.
-              <span style={{ color: "#FF6B6B", fontWeight: 700 }}> 감정이 아니라 기준이 필요해요.</span>
-            </p>
+            <div style={{ fontSize: 11, color: tier.color, fontWeight: 700, marginBottom: 8, letterSpacing: 0.5 }}>
+              💡 착한 축의금 원칙
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#111", lineHeight: 1.6, marginBottom: 6 }}>
+              "관계의 깊이 + 교류 빈도"
+            </div>
+            <div style={{ fontSize: 12, color: "#888", lineHeight: 1.7 }}>
+              이 두 가지로 기준을 잡는 게 가장 안전해요.
+            </div>
+            <div style={{
+              display: "inline-block", marginTop: 10,
+              background: "#FF6B6B", color: "#fff",
+              borderRadius: 100, padding: "4px 14px",
+              fontSize: 11, fontWeight: 700
+            }}>
+              감정이 아니라 기준이 필요해요
+            </div>
           </div>
         </div>
       )}
@@ -2828,23 +2826,6 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
       {/* ── 탭: 도구 ── */}
       {activeTab === "tools" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10, animation: "fadeSlideIn 0.25s ease" }}>
-
-          {/* 3만원 → 안가도 돼요 */}
-          {tier.amount <= 30000 && (
-            <div style={{
-              background: "#FFFBEB", border: "1.5px solid #FDE68A",
-              borderRadius: 16, padding: "14px 16px"
-            }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "#92400E", marginBottom: 6 }}>
-                🤔 솔직히 안 가는 게 나을 수도 있어요
-              </div>
-              <div style={{ fontSize: 12, color: "#78350F", lineHeight: 1.7 }}>
-                3만원이 나왔다는 건 인연이 얕다는 뜻이에요.
-                <strong> 계좌이체</strong>도 충분히 예의 있는 선택이에요.
-              </div>
-            </div>
-          )}
-
           {/* D-Day */}
           <div style={{
             background: "#fff", borderRadius: 16, padding: "16px",
@@ -3035,12 +3016,7 @@ export default function App() {
         return;
       }
 
-      const { createClient } = await import("@supabase/supabase-js");
-
-      const supabase = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY
-      );
+      const supabase = await getSupabase();
 
       const { data, error } = await supabase
         .from("calculations")
