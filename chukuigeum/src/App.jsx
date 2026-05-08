@@ -342,6 +342,17 @@ const CHAT_FLOW = [
   },
 ];
 
+// ─── 예식장 최근 검색 유틸 ───────────────────────────────────────────────────
+function loadRecentVenues() {
+  try { return JSON.parse(localStorage.getItem("wf_recent_venues") || "[]"); } catch { return []; }
+}
+function saveRecentVenue(place) {
+  try {
+    const prev = loadRecentVenues().filter(p => p.place_name !== place.place_name);
+    localStorage.setItem("wf_recent_venues", JSON.stringify([place, ...prev].slice(0, 5)));
+  } catch {}
+}
+
 function formatAmount(n) {
   if (n >= 10000) return `${n / 10000}만원`;
   return `${n?.toLocaleString()}원`;
@@ -362,6 +373,17 @@ function saveHistory(entry) {
 function HistoryPanel({ onClose }) {
   const history = loadHistory();
   if (history.length === 0) return null;
+
+  // 통계 계산
+  const avg = Math.round(history.reduce((s, h) => s + h.amount, 0) / history.length / 10000) * 10000;
+  const max = Math.max(...history.map(h => h.amount));
+  const min = Math.min(...history.map(h => h.amount));
+  const mostRelation = (() => {
+    const cnt = {};
+    history.forEach(h => { cnt[h.relation] = (cnt[h.relation] || 0) + 1; });
+    return Object.entries(cnt).sort((a, b) => b[1] - a[1])[0]?.[0];
+  })();
+
   return (
     <div style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
@@ -371,12 +393,44 @@ function HistoryPanel({ onClose }) {
         background: "#fff", borderRadius: "24px 24px 0 0",
         padding: "24px 20px 40px", width: "100%", maxWidth: 480,
         fontFamily: "'Pretendard', -apple-system, sans-serif",
-        maxHeight: "70vh", overflowY: "auto"
+        maxHeight: "75vh", overflowY: "auto"
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <div style={{ fontSize: 16, fontWeight: 800 }}>📋 지난 계산 기록</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div style={{ fontSize: 16, fontWeight: 800 }}>📋 내 축의금 패턴</div>
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#999" }}>✕</button>
         </div>
+
+        {/* 통계 카드 — 3개 이상일 때만 */}
+        {history.length >= 3 && (
+          <div style={{
+            background: "linear-gradient(135deg, #FFF5F5, #FFF0F0)",
+            border: "1.5px solid #FFD0D0", borderRadius: 16,
+            padding: "16px", marginBottom: 16
+          }}>
+            <div style={{ fontSize: 11, color: "#FF6B6B", fontWeight: 700, marginBottom: 10 }}>
+              📊 {history.length}번 계산 기준 내 패턴
+            </div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              {[
+                { label: "평균", value: formatAmount(avg) },
+                { label: "최고", value: formatAmount(max) },
+                { label: "최저", value: formatAmount(min) },
+              ].map((s, i) => (
+                <div key={i} style={{
+                  flex: 1, background: "#fff", borderRadius: 10,
+                  padding: "10px 8px", textAlign: "center"
+                }}>
+                  <div style={{ fontSize: 10, color: "#aaa", marginBottom: 4 }}>{s.label}</div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: "#FF6B6B" }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 12, color: "#888", textAlign: "center" }}>
+              나는 주로 <strong style={{ color: "#333" }}>{mostRelation}</strong>에게 가장 많이 냈어요
+            </div>
+          </div>
+        )}
+
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {history.map((h, i) => (
             <div key={i} style={{
@@ -389,9 +443,7 @@ function HistoryPanel({ onClose }) {
                 </div>
                 <div style={{ fontSize: 11, color: "#999" }}>{h.date}</div>
               </div>
-              <div style={{
-                fontSize: 20, fontWeight: 900, color: "#FF6B6B"
-              }}>
+              <div style={{ fontSize: 20, fontWeight: 900, color: "#FF6B6B" }}>
                 {formatAmount(h.amount)}
               </div>
             </div>
@@ -717,6 +769,53 @@ function VenueCountBadge() {
     }}>
       <span>🏛️</span>
       <span>현재 <strong>{count.toLocaleString()}개</strong> 예식장 DB 등록됨</span>
+    </div>
+  );
+}
+
+function SeasonBanner() {
+  const [growth, setGrowth] = useState(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { createClient } = await import("@supabase/supabase-js");
+        const supabase = createClient(
+          import.meta.env.VITE_SUPABASE_URL,
+          import.meta.env.VITE_SUPABASE_ANON_KEY
+        );
+        const now = Date.now();
+        const [{ count: thisMonth }, { count: lastMonth }] = await Promise.all([
+          supabase.from("calculations").select("*", { count: "exact", head: true })
+            .gte("created_at", new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString()),
+          supabase.from("calculations").select("*", { count: "exact", head: true })
+            .gte("created_at", new Date(now - 60 * 24 * 60 * 60 * 1000).toISOString())
+            .lt("created_at", new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString()),
+        ]);
+        if (thisMonth && lastMonth && lastMonth > 0) {
+          const pct = Math.round(((thisMonth - lastMonth) / lastMonth) * 100);
+          if (pct >= 20) setGrowth(pct); // 20% 이상 증가 시만 표시
+        }
+      } catch {}
+    };
+    load();
+  }, []);
+
+  if (!growth) return null;
+
+  return (
+    <div style={{
+      background: "linear-gradient(135deg, #FFF5F5, #FFF0EC)",
+      border: "1.5px solid #FFD0B0", borderRadius: 12,
+      padding: "10px 14px", marginBottom: 12,
+      display: "flex", alignItems: "center", gap: 8,
+      animation: "fadeSlideIn 0.4s ease"
+    }}>
+      <span style={{ fontSize: 18 }}>🔥</span>
+      <div style={{ fontSize: 12, color: "#C2410C", fontWeight: 700 }}>
+        이번 달 계산 급증 중! 전월 대비 +{growth}%
+        <span style={{ fontWeight: 400, color: "#999", marginLeft: 4 }}>결혼 성수기예요</span>
+      </div>
     </div>
   );
 }
@@ -1191,6 +1290,8 @@ function VenueSearch({ onSelect, onReport }) {
   const [suggestions, setSuggestions] = useState([]); // 자동완성 목록
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [autoDistanceResult, setAutoDistanceResult] = useState(null);
+  const [recentVenues] = useState(() => loadRecentVenues());
+  const [venueAvgAmount, setVenueAvgAmount] = useState(null);
 
   const handleSkip = () => {
     setConfirmed(true);
@@ -1213,6 +1314,7 @@ function VenueSearch({ onSelect, onReport }) {
   };
 
   const selectPlace = async (place) => {
+  saveRecentVenue(place);
   setSelectedPlace(place);
   setStep("meal");
   setMealLoading(true);
@@ -1231,6 +1333,26 @@ function VenueSearch({ onSelect, onReport }) {
       setAutoDistanceResult(autoDistance);
     }
   }
+    // 이 예식장 평균 축의금 조회
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY
+      );
+      const { data: venueCalcs } = await supabase
+        .from('calculations')
+        .select('amount')
+        .ilike('venue_name', `%${place.place_name}%`)
+        .gte('created_at', new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString());
+      if (venueCalcs && venueCalcs.length >= 3) {
+        const venueAvg = Math.round(
+          venueCalcs.reduce((s, c) => s + c.amount, 0) / venueCalcs.length / 10000
+        ) * 10000;
+        setVenueAvgAmount({ avg: venueAvg, count: venueCalcs.length });
+      }
+    } catch {}
+
     const dbData = await searchMealCostFromDB(place.place_name);
     if (dbData && Array.isArray(dbData)) {
     // 평균 식대 계산 (만 원 단위 반올림)
@@ -1333,6 +1455,24 @@ function VenueSearch({ onSelect, onReport }) {
       {step === "searching" ? "🔍" : "검색"}
     </button>
   </div>
+
+    {!showSuggestions && recentVenues.length > 0 && (
+      <div style={{ marginTop: 8 }}>
+        <div style={{ fontSize: 11, color: "#bbb", marginBottom: 6, fontWeight: 600 }}>🕐 최근 검색</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {recentVenues.map((p, i) => (
+            <button key={i} onClick={() => { setQuery(p.place_name); selectPlace(p); }} style={{
+              padding: "10px 14px", borderRadius: 10, border: "1.5px solid #f0f0f0",
+              background: "#fafafa", cursor: "pointer", textAlign: "left",
+              fontFamily: "inherit", display: "flex", justifyContent: "space-between", alignItems: "center"
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#333" }}>{p.place_name}</span>
+              <span style={{ fontSize: 11, color: "#aaa" }}>{p.address_name?.split(" ").slice(0, 2).join(" ")}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )}
 
     {showSuggestions && suggestions.length > 0 && (
       <div style={{
@@ -1493,6 +1633,22 @@ function VenueSearch({ onSelect, onReport }) {
               )}
             </div>
           </div>
+
+          {/* 이 예식장 다녀온 사람들 평균 축의금 */}
+              {venueAvgAmount && (
+                <div style={{
+                  background: "#F0FDF4", border: "1px solid #BBF7D0",
+                  borderRadius: 12, padding: "10px 14px", marginBottom: 12,
+                  display: "flex", justifyContent: "space-between", alignItems: "center"
+                }}>
+                  <span style={{ fontSize: 12, color: "#15803D" }}>
+                    여기서 결혼식 다녀온 {venueAvgAmount.count}명 평균
+                  </span>
+                  <span style={{ fontSize: 15, fontWeight: 900, color: "#15803D" }}>
+                    {formatAmount(venueAvgAmount.avg)}
+                  </span>
+                </div>
+              )}
 
           {mealLoading ? (
             <div style={{
@@ -1990,6 +2146,72 @@ function AmountCountUp({ amount, color }) {
   );
 }
 
+function CheckList({ amount }) {
+  const items = [
+    { id: "envelope", label: "💌 봉투 또는 계좌이체 준비" },
+    { id: "amount", label: `💰 ${formatAmount(amount)} 준비` },
+    { id: "message", label: "✍️ 축하 메시지 생각해두기" },
+    { id: "schedule", label: "📅 당일 일정 확인" },
+    ...(amount >= 100000 ? [{ id: "gift", label: "🎁 추가 선물 고려해보기" }] : []),
+  ];
+  const [checked, setChecked] = useState({});
+  const toggle = (id) => setChecked(p => ({ ...p, [id]: !p[id] }));
+  const doneCount = Object.values(checked).filter(Boolean).length;
+
+  return (
+    <div style={{
+      background: "#fff", border: "1px solid #f0f0f0",
+      borderRadius: 16, padding: "16px", marginBottom: 12,
+      boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "#111" }}>
+          ✅ 축의금 준비 체크리스트
+        </div>
+        <div style={{ fontSize: 11, color: "#FF6B6B", fontWeight: 700 }}>
+          {doneCount}/{items.length}
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {items.map(item => (
+          <button key={item.id} onClick={() => toggle(item.id)} style={{
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "10px 12px", borderRadius: 10,
+            border: checked[item.id] ? "1.5px solid #BBF7D0" : "1.5px solid #f0f0f0",
+            background: checked[item.id] ? "#F0FDF4" : "#fafafa",
+            cursor: "pointer", textAlign: "left", fontFamily: "inherit"
+          }}>
+            <div style={{
+              width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+              background: checked[item.id] ? "#22C55E" : "#fff",
+              border: checked[item.id] ? "2px solid #22C55E" : "2px solid #ddd",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 11, color: "#fff", fontWeight: 900
+            }}>
+              {checked[item.id] ? "✓" : ""}
+            </div>
+            <span style={{
+              fontSize: 13, fontWeight: 600,
+              color: checked[item.id] ? "#15803D" : "#333",
+              textDecoration: checked[item.id] ? "line-through" : "none"
+            }}>
+              {item.label}
+            </span>
+          </button>
+        ))}
+      </div>
+      {doneCount === items.length && (
+        <div style={{
+          textAlign: "center", marginTop: 10, fontSize: 13,
+          fontWeight: 700, color: "#22C55E", animation: "popIn 0.4s ease"
+        }}>
+          🎉 완벽하게 준비됐어요!
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ResultCard({ result, onRetry, onReport, onAddToList }) {
   const { total, tier } = result;
 
@@ -1999,8 +2221,10 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [shareToken, setShareToken] = useState(null);
   const [stats, setStats] = useState(null);
-  const [vote, setVote] = useState(null);         // 'up' | 'down' | null
-  const [voteStats, setVoteStats] = useState(null); // { upCount, total }
+  const [vote, setVote] = useState(null);
+  const [voteStats, setVoteStats] = useState(null);
+  const [shareStyle, setShareStyle] = useState("default");
+  const [cardTheme, setCardTheme] = useState("default"); // "default" | "pastel" | "dark"
   const cardRef = useRef(null);
   const shareCardRef = useRef(null);
 
@@ -2026,6 +2250,7 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
           amount: tier.amount,
           share_token: token,
           relation_label: result.relationLabel || null,
+          venue_name: result.venue?.name && result.venue.name !== "모름" ? result.venue.name : null,
         }]);
 
         setShareToken(token);
@@ -2058,13 +2283,19 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
     })();
   }, [result.total, tier.amount]);
 
+  const getShareText = (style, url) => {
+    const amount = formatAmount(tier.amount);
+    if (style === "friend") return `친구 결혼식 축의금 고민하다가 계산기 써봤는데 ${amount} 나왔어 ㅋㅋ 너도 해봐 → ${url}`;
+    if (style === "work") return `직장 동료 결혼식 축의금, AI한테 물어봤더니 ${amount} 래요. 여러분은요? → ${url}`;
+    return `💒 축의금 계산 결과: ${amount}\n"${tier.title}"\n\n축의금, 이걸로 정하면 욕 안 먹습니다!\n나도 계산하기 → ${url}`;
+  };
+
   const handleCopy = () => {
     const url = shareToken
       ? `https://weddingfee.vercel.app?token=${shareToken}`
       : `https://weddingfee.vercel.app`;
-    navigator.clipboard.writeText(
-      `💒 축의금 계산 결과: ${formatAmount(tier.amount)}\n"${tier.title}"\n\n축의금, 이걸로 정하면 욕 안 먹습니다!\n나도 계산하기 → ${url}`
-    ).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    navigator.clipboard.writeText(getShareText(shareStyle, url))
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   };
 
   const handleKakaoShare = () => {
@@ -2089,7 +2320,11 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
       objectType: "feed",
       content: {
         title: `추천 축의금은 ${formatAmount(tier.amount)}`,
-        description: `"${tier.title}"\n축의금, 이걸로 정하면 욕 안 먹습니다!`,
+        description: shareStyle === "friend"
+          ? `친구 결혼식 축의금 고민하다가 계산기 써봤는데 ${formatAmount(tier.amount)} 나왔어`
+          : shareStyle === "work"
+          ? `직장 동료 결혼식 축의금, AI한테 물어봤더니 ${formatAmount(tier.amount)} 래요`
+          : `"${tier.title}"\n축의금, 이걸로 정하면 욕 안 먹습니다!`,
         imageUrl: ogImageUrl,
         link: {
           mobileWebUrl: url,
@@ -2152,9 +2387,30 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
   return (
     <div style={{ padding: "4px 0 16px 0", animation: "fadeSlideIn 0.4s ease" }}>
       {/* 결과 카드 — 이미지 캡처 영역 */}
+      {/* 테마 선택 */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 8, justifyContent: "flex-end" }}>
+        {[
+          { key: "default", label: "🎨 기본" },
+          { key: "pastel", label: "🌸 파스텔" },
+          { key: "dark", label: "🌙 다크" },
+        ].map(t => (
+          <button key={t.key} onClick={() => setCardTheme(t.key)} style={{
+            padding: "5px 10px", borderRadius: 100,
+            border: cardTheme === t.key ? "2px solid #FF6B6B" : "2px solid #f0f0f0",
+            background: cardTheme === t.key ? "#FFF5F5" : "#fff",
+            color: cardTheme === "dark" ? "#bbb" : "#555",
+            cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit"
+          }}>{t.label}</button>
+        ))}
+      </div>
+
       <div ref={cardRef} style={{
-        background: `linear-gradient(135deg, ${tier.color}18, ${tier.color}06)`,
-        border: `2px solid ${tier.color}30`,
+        background: cardTheme === "pastel"
+          ? `linear-gradient(135deg, ${tier.color}28, #fff9f9)`
+          : cardTheme === "dark"
+          ? `linear-gradient(135deg, #1a1a2e, #16213e)`
+          : `linear-gradient(135deg, ${tier.color}18, ${tier.color}06)`,
+        border: cardTheme === "dark" ? "2px solid #444" : `2px solid ${tier.color}30`,
         borderRadius: 20, padding: "28px 20px 24px", textAlign: "center", marginBottom: 12,
         animation: "fadeSlideIn 0.4s ease"
       }}>
@@ -2182,15 +2438,38 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
 
         {/* 타이틀 */}
         <div style={{
-          fontSize: 16, fontWeight: 700, color: "#444", marginBottom: 12, marginTop: 4,
+          fontSize: 16, fontWeight: 700, color: "#444", marginBottom: 8, marginTop: 4,
           animation: "slideUp 0.4s ease 0.35s both"
         }}>
           {tier.title}
         </div>
 
+        {/* 홀수 금액 가이드 */}
+        {[30000, 50000, 70000, 150000, 300000, 500000].includes(tier.amount) && (
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 4,
+            background: "#F0FDF4", border: "1px solid #BBF7D0",
+            borderRadius: 100, padding: "3px 10px",
+            fontSize: 11, fontWeight: 600, color: "#15803D",
+            marginBottom: 10, animation: "slideUp 0.4s ease 0.38s both"
+          }}>
+            💡 홀수 금액이 관례예요
+          </div>
+        )}
+        {[100000, 200000, 1000000].includes(tier.amount) && (
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 4,
+            background: "#FFF7ED", border: "1px solid #FED7AA",
+            borderRadius: 100, padding: "3px 10px",
+            fontSize: 11, fontWeight: 600, color: "#C2410C",
+            marginBottom: 10, animation: "slideUp 0.4s ease 0.38s both"
+          }}>
+            💡 짝수지만 10만원 단위는 괜찮아요
+          </div>
+        )}
+
         {/* 구분선 */}
         <div style={{ width: 32, height: 2, background: `${tier.color}66`, borderRadius: 2, margin: "0 auto 12px", animation: "slideUp 0.4s ease 0.4s both" }} />
-
         {/* 멘트 */}
         <p style={{
           fontSize: 13, color: "#555", lineHeight: 1.7, margin: 0,
@@ -2375,7 +2654,24 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
       </div>
 
       {/* 공유 버튼 */}
+      {/* 공유 버튼 */}
       <div style={{ display: "flex", gap: 8, marginBottom: 10, flexDirection: "column" }}>
+        {/* 공유 스타일 탭 */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+          {[
+            { key: "default", label: "기본" },
+            { key: "friend", label: "친구한테" },
+            { key: "work", label: "직장용" },
+          ].map(s => (
+            <button key={s.key} onClick={() => setShareStyle(s.key)} style={{
+              flex: 1, padding: "7px", borderRadius: 8,
+              border: shareStyle === s.key ? "2px solid #FF6B6B" : "2px solid #f0f0f0",
+              background: shareStyle === s.key ? "#FFF5F5" : "#fff",
+              color: shareStyle === s.key ? "#FF6B6B" : "#888",
+              cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit"
+            }}>{s.label}</button>
+          ))}
+        </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={handleCopy} style={{
             flex: 1, padding: "13px", borderRadius: 14, border: "2px solid #f0f0f0",
@@ -2399,6 +2695,25 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
           fontSize: 14, fontWeight: 700, fontFamily: "inherit"
         }}>
           💬 카카오 공유
+        </button>
+        <button onClick={() => {
+          const text = [
+            `📋 축의금 계산 결과`,
+            `금액: ${formatAmount(tier.amount)}`,
+            `관계: ${result.relationLabel || "-"}`,
+            result.venue?.name && result.venue.name !== "모름" ? `예식장: ${result.venue.name}` : null,
+            `인연점수: ${total}점`,
+            `날짜: ${new Date().toLocaleDateString("ko-KR")}`,
+          ].filter(Boolean).join("\n");
+          navigator.clipboard.writeText(text)
+            .then(() => alert("📋 메모 형식으로 복사됐어요!"));
+        }} style={{
+          width: "100%", padding: "11px", borderRadius: 14,
+          border: "2px solid #f0f0f0", background: "#fff",
+          color: "#666", cursor: "pointer", fontSize: 13,
+          fontWeight: 700, fontFamily: "inherit"
+        }}>
+          📝 노션/메모앱용 텍스트 복사
         </button>
       </div>
 
@@ -2461,6 +2776,9 @@ function ResultCard({ result, onRetry, onReport, onAddToList }) {
           </div>
         </div>
       )}
+
+     {/* 축의금 준비 체크리스트 */}
+      <CheckList amount={tier.amount} />
 
       {onAddToList && (
         <button onClick={() => onAddToList(tier.amount)} style={{
@@ -2657,15 +2975,22 @@ export default function App() {
       );
     }
 
-    // venue skipped면 distance도 건너뜀
+    // 스마트 스킵 로직
     let nextStep = stepIndex + 1;
-    if (
-      CHAT_FLOW[nextStep]?.id === "distance" &&
-      newAnswers.venue?.skipped
-    ) {
+
+    // venue skipped → distance 스킵
+    if (CHAT_FLOW[nextStep]?.id === "distance" && newAnswers.venue?.skipped) {
       nextStep += 1;
     }
-    setCurrentStep(nextStep); // 추가
+
+    // SNS친구(value=1) / 지인(value=2) → after_honeymoon, gender 스킵
+    const relationVal = newAnswers.relation?.value;
+    if (relationVal <= 2) {
+      if (CHAT_FLOW[nextStep]?.id === "after_honeymoon") nextStep += 1;
+      if (CHAT_FLOW[nextStep]?.id === "gender") nextStep += 1;
+    }
+
+    setCurrentStep(nextStep);
 
     if (nextStep >= CHAT_FLOW.length) {
       // 결과 계산
@@ -2964,6 +3289,7 @@ export default function App() {
                 <div style={{ textAlign: "center" }}>
                   <VenueCountBadge />
                 </div>
+                <SeasonBanner />
                 <ControversyBubbles />
                 <MonthlyTop3Card />
                 <RelationAvgStats />
